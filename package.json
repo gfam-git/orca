@@ -1,0 +1,30 @@
+{
+  "name": "@adam-gfam/orca",
+  "version": "1.0.0",
+  "description": "ORCa - OpenAPI as Remote CLI",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "openapi",
+    "mcp",
+    "cli",
+    "orca"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0",
+    "openapi-typescript": "^7.13.0",
+    "undici": "^8.10.2"
+  }
+}

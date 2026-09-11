@@ -1,16 +1,31 @@
 {
   "name": "@adam-gfam/orca",
   "version": "1.0.0",
-  "description": "OpenAPI as Remote CLI (ORCa) - an LLM-first web protocol wrapper for OpenAPI specs via MCP",
-  "main": "index.js",
+  "description": "ORCa - OpenAPI as Remote CLI",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "openapi",
+    "mcp",
+    "cli",
+    "orca"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
   "dependencies": {
-    "@modelcontextprotocol/server": "^2.0.0"
+    "@modelcontextprotocol/server": "^2.0.0",
+    "openapi-fetch": "^0.17.0",
+    "openapi-typescript": "^7.13.0",
+    "undici": "^8.10.2"
   }
 }

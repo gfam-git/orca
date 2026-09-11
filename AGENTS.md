@@ -58,6 +58,24 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 - **Updating help text**: Regenerate from the OpenAPI spec when the remote service changes.
 - **Bug fixes**: Reproduce with tests, fix, and verify.
 
+### 8. Dependencies
+
+The project uses a curated stack of lightweight, type-safe packages:
+
+**Runtime Dependencies:**
+
+- `undici` (`^8.10.2`) — HTTP client for making web requests to remote OpenAPI spec endpoints and API calls. Zero dependencies, fastest benchmarks, official Node.js foundation project.
+- `openapi-fetch` (`^0.17.0`) — Typed fetch client for API operations. 6 kB bundle, zero manual typing, types flow directly from OpenAPI schema.
+- `openapi-typescript` (`^7.13.0`) — Generates TypeScript types from OpenAPI 3.x/3.1 schemas. Generates `.d.ts` files from remote specs.
+
+**Development Dependencies:**
+
+- `typescript` (`^5.9.3`) — TypeScript compiler. Pinned for peer dependency compatibility with the MCP SDK.
+- `ts-node` (`^10.9.2`) — TypeScript execution engine for Node.js. Enables running TypeScript source directly during development.
+- `@types/node` (`^22.20.2`) — Node.js TypeScript type definitions.
+
+**Alternatives Considered:** `axios` (heavier, slower), `got`/`ky` (ESM-only, lighter fetch wrapper), `openapi-typescript-codegen` (generates code, much heavier), `openapi-typescript-fetch` (3 kB, smallest). See `README.md` for full comparison.
+
 ## Contributing
 
 All contributions are welcome. Follow the guidelines in `README.md` and keep this file current as the project evolves.

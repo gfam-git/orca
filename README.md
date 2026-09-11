@@ -54,6 +54,34 @@ Set the following fields:
   ```
 ---
 
+## Dependencies
+
+ORCa uses a curated stack of lightweight, type-safe packages:
+
+### Runtime Dependencies
+
+| Package | Version | Purpose | Justification |
+| --- | --- | --- | --- |
+| `undici` | `^8.10.2` | HTTP client for making web requests to remote OpenAPI spec endpoints and API calls | Zero dependencies, fastest benchmarks (up to 3.4x faster than alternatives), official Node.js foundation project, advanced connection pooling |
+| `openapi-fetch` | `^0.17.0` | Typed fetch client for API operations | 6 kB bundle, 300k ops/s, zero manual typing, types flow directly from OpenAPI schema |
+| `openapi-typescript` | `^7.13.0` | Generates TypeScript types from OpenAPI 3.x/3.1 schemas | Officially maintained, generates `.d.ts` files from remote specs, essential companion to `openapi-fetch` for end-to-end type safety |
+
+### Development Dependencies
+
+| Package | Version | Purpose | Justification |
+| --- | --- | --- | --- |
+| `typescript` | `^5.9.3` | TypeScript compiler | Required for the MCP TypeScript SDK; pinned to `^5.9.3` for peer dependency compatibility |
+| `ts-node` | `^10.9.2` | TypeScript execution engine for Node.js | Enables running TypeScript source directly during development |
+| `@types/node` | `^22.20.2` | Node.js TypeScript type definitions | Provides type safety for Node.js APIs |
+
+### Alternative Packages Considered
+
+- **axios** — Feature-rich HTTP client with interceptors, but heavier (32 kB) and slower in benchmarks. Consider if request/response transformers are needed.
+- **got** — HTTP/2 support and RFC 7234 caching, but native ESM only. Authors recommend `ky` for simpler needs.
+- **ky** — Lightweight fetch-based client by the same authors as `got`. Works in browser and Node.js.
+- **openapi-typescript-codegen** — Generates actual TypeScript client code, but much heavier (367 kB) and 3x slower.
+- **openapi-typescript-fetch** — Smallest OpenAPI client at 3 kB. Consider if minimal bundle size is the top priority.
+
 ## Developing and Contributing
 
 All contributions welcome.\

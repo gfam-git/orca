@@ -2,11 +2,11 @@
 
 ## What is _ORCa_?
 
-The  "ORC" in _ORCa_ stands for **OpenAPI as Remote CLI**, which is meant to serve as an alternative to [_MCP_](https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro). Namely, _ORC_ is a concept of an LLM-first web protocol like _MCP_, except that it exposes all tools and tool sets via a single text input like a command line. The entire cli behavior on the remote side is powered by, and verified by, an existing [_OpenAPI_](https://www.openapis.org/what-is-openapi) spec for said service.
+The  "ORC" in _ORCa_ stands for **OpenAPI as Remote CLI**, which is meant to serve as an alternative to [_MCP_](https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro). Namely, _ORC_ is a concept of an LLM-first web protocol like _MCP_, except that it exposes all tools and tool sets via a single text input like a command line. The entire CLI behavior on the remote side is powered by, and verified by, an existing [_OpenAPI_](https://www.openapis.org/what-is-openapi) spec for said service.
 
 This project, _ORCa_, is a proof-of-concept implementation that utilizes the already existing, official, [`@modelcontextprotocol/server`](https://github.com/modelcontextprotocol/typescript-sdk) _MCP_ server SDK. This is for a few reasons:
 
-1. Any _MCP_ client (Claud Code, Hermes, etc.) can try _ORCa_ with no modifications to their codebase.
+1. Any _MCP_ client (Claude Code, Hermes, etc.) can try _ORCa_ with no modifications to their codebase.
 2. It's quicker to develop on top of an existing protocol, at least for a POC, than it is creating one from scratch.
 
 ### Features (Existing and Planned)
@@ -18,7 +18,7 @@ This project, _ORCa_, is a proof-of-concept implementation that utilizes the alr
 
 ### Why?
 
-Pros and Cons of _MCP_ vs. _ORC_
+Pros and Cons of _MCP_ vs. _ORC_.
 
 | ORC | MCP |
 | --- | --- |

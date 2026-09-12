@@ -2,10 +2,10 @@
 /**
  * Tests for parseArguments and formatArguments
  *
- * Run with: npx ts-node tests/parse-format.ts
+ * Run with: npx ts-node tests/mcp/input-tool-test.ts
  */
 
-import { parseArguments, formatArguments } from '../src/index';
+import { parseArguments, formatArguments } from '../index';
 
 // ──────────────────────────────────────────────
 // Test helpers

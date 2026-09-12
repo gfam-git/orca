@@ -30,10 +30,21 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 ### 4. Project Structure
 
 ```
--- README.md       // Project details for non-agents (what is ORCa, why, getting started)
--- AGENTS.md       // You are here — project details for AI agents
--- src/            // Source code for the ORCa implementation
--- docs/           // Top-level directory for all technical documentation
+|-- README.md       // Project details for non-agents (what is ORCa, why, getting started)
+|-- AGENTS.md       // You are here — project details for AI agents
+|-- src/            // Source code for the ORCa implementation
+|   |-- index.ts    // Entry point — exports and server bootstrap
+|   |-- mcp/        // MCP server implementation
+|   |   |-- validation.ts  // ORCA_SPEC_ENDPOINT validation
+|   |   |-- server.ts     // MCP server setup and tool registration
+|   |   |-- tools/        // Tool implementations
+|   |       |-- index.ts      // Tool exports
+|   |       |-- input-parser.ts  // Quote-aware CLI argument parser
+|   |       |-- format-args.ts // Placeholder logic for argument output
+|-- tests/          // Test suite
+|   |-- mcp/        // MCP tool tests
+|       |-- input-tool-test.ts  // Tests for parseArguments and formatArguments
+|-- docs/           // Top-level directory for all technical documentation
    |-- INDEX.md    // Index of all docs and sub-directories
    |-- .../        // Sub-directories and corresponding INDEX.md files as needed
 ```

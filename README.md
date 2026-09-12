@@ -129,14 +129,25 @@ In general, the following guidlines should be adhered to:
 
 ### Project Structure
 
-Keep this up-to-date as the project evolves.\
+Keep this up-to-date as the project evolves.\\\
 No need to repeate the project files and directories verbatim, but outline the overall shape an purpose of the primary directories.
 
 ```
 |-- README.md       // Contains project details for non-agents.
 |-- AGENTS.md       // Contains project details for agents.
 |-- src/
+|   |-- index.ts    // Entry point — exports and server bootstrap
+|   |-- mcp/        // MCP server implementation
+|   |   |-- validation.ts  // ORCA_SPEC_ENDPOINT validation
+|   |   |-- server.ts     // MCP server setup and tool registration
+|   |   |-- tools/        // Tool implementations
+|   |       |-- index.ts      // Tool exports
+|   |       |-- input-parser.ts  // Quote-aware CLI argument parser
+|   |       |-- format-args.ts // Placeholder logic for argument output
+|-- tests/
+|   |-- mcp/        // Test suite
+|       |-- input-tool-test.ts  // Tests for parseArguments and formatArguments
 |-- docs/           // Top-level directory for all technical documentation.
-|   |-- INDEX.md    // Index of all docs and sub-directories in the docs folder. Similar to `index.ts` but for documentation.
-|   |-- .../        // Sub-directories and corresponding INDEX.md files created as-needed.
+   |-- INDEX.md    // Index of all docs and sub-directories in the docs folder. Similar to `index.ts` but for documentation.
+   |-- .../        // Sub-directories and corresponding INDEX.md files created as-needed.
 ```

@@ -15,6 +15,9 @@ This project, _ORCa_, is a proof-of-concept implementation that utilizes the alr
 - Single string input for accepting all the command arguments.
 - Automatically parse input and interact with attached service according to OpenAPI spec.
 - Automatically generate `--help` text based on resource, functions, and input descriptions in the OpenAPI spec.
+- `ORCA_SPEC_ENDPOINT` environment variable validation on server startup — the server refuses to start if the variable is unset, empty, or not a valid URL.
+- Quote-aware CLI argument parser that splits on whitespace while preserving quoted strings and escaped characters.
+- `formatArguments()` placeholder logic that pretty-prints parsed arguments as an indexed, single-quoted list.
 
 ### Why?
 
@@ -30,9 +33,41 @@ _ORC_ should be especially attractive to people utiliing locally-hosted LLMs, as
 
 ## Getting Started
 
-Simply add the server to any _MCP_ client. This will depend on the client being used, so consult those docs.\
-This can be done via the `stdio` transport.\
+Simply add the server to any _MCP_ client. This will depend on the client being used, so consult those docs.\\\
+This can be done via the `stdio` transport.\\\
 The `ORCA_SPEC_ENDPOINT` environment variable is required, and must be set to the URL of the remote service endpoint serving the OpenAPI spec.
+
+### Command-Line Tool
+
+Once configured, the server exposes a single `command_line` tool that accepts a string input and parses it into arguments:
+
+- The input string is split on whitespace (spaces, tabs, newlines).
+- Content wrapped in matching single (`'`) or double (`"`) quotes is preserved as a single argument, including any internal whitespace.
+- Escaped characters (`\"` and `\'`) are handled inside quoted strings.
+- The parsed arguments are returned as a pretty-printed, indexed list with each argument wrapped in single quotes.
+
+#### Example Input
+
+```
+hello 'world foo' bar
+```
+
+#### Example Output
+
+```
+Arguments (3):
+  [ 0] 'hello'
+  [ 1] 'world foo'
+  [ 2] 'bar'
+```
+
+### Environment Variable
+
+The `ORCA_SPEC_ENDPOINT` environment variable must be set before the server starts. The server will refuse to start with exit code 1 if:
+
+1. `ORCA_SPEC_ENDPOINT` is not set.
+2. `ORCA_SPEC_ENDPOINT` is empty.
+3. `ORCA_SPEC_ENDPOINT` is not a valid URL.
 
 ### Example Configs
 

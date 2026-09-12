@@ -9,7 +9,7 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 ### 1. Understanding the Protocol
 
 - ORC is an **LLM-first web protocol** alternative to MCP. Instead of exposing individual tools, it presents a single CLI-like interface backed by an OpenAPI spec.
-- The `ORCA_SPEC_ENDPOINT` environment variable must be set to the URL of the remote service serving the OpenAPI spec.
+- The `ORCA_SPEC_ENDPOINT` environment variable must be set to the URL of the remote service serving the OpenAPI spec. The server validates this on startup and refuses to start if unset, empty, or not a valid URL.
 - Agents should treat ORCa as a **transitional bridge**: any MCP client can use it without codebase modifications.
 
 ### 2. Working With the Codebase
@@ -41,6 +41,8 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 ### 5. Key Concepts to Keep in Mind
 
 - **Single string input**: All command arguments are accepted through one string. The agent must parse this input and route to the appropriate OpenAPI operation.
+- **Quote-aware argument parsing**: The `parseArguments()` function splits on whitespace while preserving quoted strings (single `'` or double `"`) and escaped characters (`\"` and `\'`). Quotes are preserved in the output.
+- **Placeholder logic**: The `formatArguments()` function pretty-prints parsed arguments as a multi-line string with indexed entries wrapped in single quotes. Use this for readable output formatting.
 - **Auto-generated `--help`**: Use the OpenAPI spec to generate help text for resources, functions, and inputs. Agents should leverage this to reduce context consumption.
 - **OpenAPI-first**: The spec defines exactly how the remote service accepts requests. Never assume behavior not documented in the spec.
 - **Context efficiency**: For locally-hosted LLMs, context consumption is critical. Use `--help` flags strategically to load context only when needed.

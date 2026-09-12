@@ -26,6 +26,8 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 - Update `README.md` and this `AGENTS.md` with high-level changes.
 - Maintain `docs/` and its `INDEX.md` with every code change.
 - When work on a feature or fix is complete, create a pull request to merge the branch into `main`.
+- **Branch naming**: Branches should be named after the feature being implemented, not the kanban task ID (e.g., `feat/argument-parser` instead of `wt/t_458a6dc1`).
+- **Existing branches**: Existing branches can be reused so long as they are updated via `origin/main` prior to starting any work.
 
 ### 4. Project Structure
 

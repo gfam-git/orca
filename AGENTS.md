@@ -9,7 +9,7 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 ### 1. Understanding the Protocol
 
 - ORC is an **LLM-first web protocol** alternative to MCP. Instead of exposing individual tools, it presents a single CLI-like interface backed by an OpenAPI spec.
-- The `ORCA_SPEC_ENDPOINT` environment variable must be set to the URL of the remote service serving the OpenAPI spec.
+- The `ORCA_SPEC_ENDPOINT` environment variable must be set to the URL of the remote service serving the OpenAPI spec. The server validates this on startup and refuses to start if unset, empty, or not a valid URL.
 - Agents should treat ORCa as a **transitional bridge**: any MCP client can use it without codebase modifications.
 
 ### 2. Working With the Codebase
@@ -26,14 +26,27 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 - Update `README.md` and this `AGENTS.md` with high-level changes.
 - Maintain `docs/` and its `INDEX.md` with every code change.
 - When work on a feature or fix is complete, create a pull request to merge the branch into `main`.
+- **Branch naming**: Branches should be named after the feature being implemented, not the kanban task ID (e.g., `feat/argument-parser` instead of `wt/t_458a6dc1`).
+- **Existing branches**: Existing branches can be reused so long as they are updated via `origin/main` prior to starting any work.
 
 ### 4. Project Structure
 
 ```
--- README.md       // Project details for non-agents (what is ORCa, why, getting started)
--- AGENTS.md       // You are here — project details for AI agents
--- src/            // Source code for the ORCa implementation
--- docs/           // Top-level directory for all technical documentation
+|-- README.md       // Project details for non-agents (what is ORCa, why, getting started)
+|-- AGENTS.md       // You are here — project details for AI agents
+|-- src/            // Source code for the ORCa implementation
+|   |-- index.ts    // Entry point — exports and server bootstrap
+|   |-- mcp/        // MCP server implementation
+|   |   |-- validation.ts  // ORCA_SPEC_ENDPOINT validation
+|   |   |-- server.ts     // MCP server setup and tool registration
+|   |   |-- tools/        // Tool implementations
+|   |       |-- index.ts      // Tool exports
+|   |       |-- input-parser.ts  // Quote-aware CLI argument parser
+|   |       |-- format-args.ts // Placeholder logic for argument output
+|-- tests/          // Test suite
+|   |-- mcp/        // MCP tool tests
+|       |-- input-tool-test.ts  // Tests for parseArguments and formatArguments
+|-- docs/           // Top-level directory for all technical documentation
    |-- INDEX.md    // Index of all docs and sub-directories
    |-- .../        // Sub-directories and corresponding INDEX.md files as needed
 ```
@@ -41,6 +54,8 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 ### 5. Key Concepts to Keep in Mind
 
 - **Single string input**: All command arguments are accepted through one string. The agent must parse this input and route to the appropriate OpenAPI operation.
+- **Quote-aware argument parsing**: The `parseArguments()` function splits on whitespace while preserving quoted strings (single `'` or double `"`) and escaped characters (`\"` and `\'`). Quotes are preserved in the output.
+- **Placeholder logic**: The `formatArguments()` function pretty-prints parsed arguments as a multi-line string with indexed entries wrapped in single quotes. Use this for readable output formatting.
 - **Auto-generated `--help`**: Use the OpenAPI spec to generate help text for resources, functions, and inputs. Agents should leverage this to reduce context consumption.
 - **OpenAPI-first**: The spec defines exactly how the remote service accepts requests. Never assume behavior not documented in the spec.
 - **Context efficiency**: For locally-hosted LLMs, context consumption is critical. Use `--help` flags strategically to load context only when needed.

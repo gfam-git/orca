@@ -14,7 +14,7 @@ import {
   helpFunction,
   OrcSpecError,
 } from '../src/orc/client';
-import type { OpenApiSpec, CommandMap, ParsedCommand } from '../src/orc/types';
+import type { OpenApiSpec, ParsedCommand } from '../src/orc/types';
 
 // ──────────────────────────────────────────────
 // Test helpers

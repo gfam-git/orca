@@ -6,7 +6,6 @@ import { request } from "undici";
 import {
   ParamDef,
   FuncDef,
-  ResourceDef,
   CommandMap,
   ResolvedOperation,
   ORCClient,
@@ -61,6 +60,7 @@ interface OpenApiSchema {
   items?: OpenApiSchema;
   format?: string;
   enum?: unknown[];
+  description?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,7 +86,6 @@ function parseSimpleYaml(text: string): unknown {
   // Split into lines and parse key-value pairs
   const lines = text.split("\n");
   const root: Record<string, unknown> = {};
-  let currentKey: string | null = null;
   let currentObj: Record<string, unknown> = root;
   let parentStack: { key: string; obj: Record<string, unknown>; indent: number }[] = [];
 
@@ -105,10 +104,10 @@ function parseSimpleYaml(text: string): unknown {
     // Handle list items
     if (value.startsWith("- ")) {
       const listValue = value.substring(2).trim();
-      if (currentKey && !Array.isArray(currentObj[currentKey])) {
-        currentObj[currentKey] = [listValue];
-      } else if (Array.isArray(currentObj[currentKey])) {
-        (currentObj[currentKey] as string[]).push(listValue);
+      if (key && !Array.isArray(currentObj[key])) {
+        currentObj[key] = [listValue];
+      } else if (Array.isArray(currentObj[key])) {
+        (currentObj[key] as string[]).push(listValue);
       }
       continue;
     }
@@ -342,8 +341,8 @@ function deriveFunctionName(
 function getResourceDescription(spec: OpenApiSpec, resource: string): string | undefined {
   // Check paths for resource-specific descriptions
   const paths = spec.paths || {};
-  for (const [path, methods] of Object.entries(paths)) {
-    for (const [method, operation] of Object.entries(methods)) {
+  for (const [_path, _methods] of Object.entries(paths)) {
+    for (const [_method, operation] of Object.entries(_methods)) {
       const tags = operation.tags || [];
       if (tags[0]?.toLowerCase() === resource) {
         if (operation.summary) return operation.summary;

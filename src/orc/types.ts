@@ -2,6 +2,55 @@
 // ORCClient types — command map, parameters, and client interface
 // ---------------------------------------------------------------------------
 
+// OpenAPI spec types (minimal, for parsing)
+
+export interface OpenApiSpec {
+  openapi?: string;
+  info?: { title?: string; description?: string };
+  servers?: { url?: string }[];
+  paths?: Record<string, Record<string, OpenApiOperation>>;
+  components?: { schemas?: Record<string, OpenApiSchema> };
+}
+
+interface OpenApiOperation {
+  tags?: string[];
+  operationId?: string;
+  summary?: string;
+  description?: string;
+  parameters?: OpenApiParam[];
+  requestBody?: OpenApiRequestBody;
+  responses?: Record<string, OpenApiResponseBody>;
+  "x-method-type"?: string;
+}
+
+interface OpenApiParam {
+  name?: string;
+  in?: "query" | "path" | "header" | "body";
+  schema?: OpenApiSchema;
+  required?: boolean;
+  description?: string;
+}
+
+interface OpenApiRequestBody {
+  content?: Record<string, { schema?: OpenApiSchema }>;
+  required?: boolean;
+}
+
+interface OpenApiResponseBody {
+  description?: string;
+  content?: Record<string, unknown>;
+}
+
+interface OpenApiSchema {
+  type?: string;
+  properties?: Record<string, OpenApiSchema>;
+  required?: string[];
+  items?: OpenApiSchema;
+  format?: string;
+  enum?: unknown[];
+  description?: string;
+}
+
 /** A parameter definition extracted from an OpenAPI operation. */
 export interface ParamDef {
   /** Parameter name (e.g. "groupName", "debug") */

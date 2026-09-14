@@ -129,7 +129,7 @@ async function startServer(): Promise<void> {
   const { StdioServerTransport } = await import("@modelcontextprotocol/server/stdio");
   const { z } = await import("zod");
 
-  const endpoint = validateSpecEndpoint();
+  validateSpecEndpoint();
 
   const server = new McpServer(
     { name: "ORCa", version: "1.0.0" },
@@ -159,6 +159,34 @@ async function startServer(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
+
+// ---------------------------------------------------------------------------
+// ORC modules — re-export for top-level package usage
+// ---------------------------------------------------------------------------
+
+export {
+  OrcClient,
+  OrcSpecError,
+  buildCommandMap,
+  parseCommand,
+  resolveOperation,
+  help,
+  helpResource,
+  helpFunction,
+} from "./orc/client";
+export type {
+  ParamDef,
+  FuncDef,
+  ResourceDef,
+  CommandMap,
+  ResolvedOperation,
+  ORCClient,
+  ParsedCommand,
+} from "./orc/types";
+
+// ---------------------------------------------------------------------------
+// Main entry — only runs when executed directly (not when imported)
+// ---------------------------------------------------------------------------
 
 const isMainModule = require.main === module;
 

@@ -37,6 +37,47 @@ The only required configuration is the `ORCA_SPEC_ENDPOINT` environment variable
 
 ## Usage
 
-Once configured, interact with ORCa through your MCP client's tool interface. Pass a single string argument containing the command and any parameters. ORCa will parse the input, route it to the appropriate OpenAPI operation, and return the result.
+Once configured, interact with ORCa through your MCP client's tool interface. Pass a single string argument containing the command and any parameters. ORCa will parse the input, resolve it against the fetched OpenAPI spec, and execute the request against the remote service.
 
-Use `--help` to generate help text for available resources, functions, and inputs based on the remote service's OpenAPI spec.
+### Command Syntax
+
+```
+<resource> <function> [--flag value] [--flag2]
+```
+
+### Help Commands
+
+Use `--help` to generate help text from the fetched OpenAPI spec:
+
+| Input | Description |
+| --- | --- |
+| `'--help'` | Show all resources and general usage |
+| `'--help <resource>'` | Show functions available on a resource |
+| `'--help <resource> <function>'` | Show parameters and examples for a function |
+
+### Example Commands
+
+```
+--help
+--help users
+--help users get --id 42
+users get --id 42
+users create --name "John Doe" --email "john@example.com"
+```
+
+## How It Works
+
+1. The server starts and validates `ORCA_SPEC_ENDPOINT`.
+2. `OrcClient.connect(endpoint)` fetches the OpenAPI spec and builds a command map.
+3. The `command_line` tool receives input, parses it, and delegates to `client.exec()`.
+4. For `--help` commands, the client generates help text from the command map.
+5. For normal commands, the client resolves the command to an HTTP request and returns the response.
+
+## Error Handling
+
+The server will abort with exit code 1 if:
+
+1. `ORCA_SPEC_ENDPOINT` is not set, empty, or not a valid URL.
+2. The `OrcClient` cannot fetch or parse the OpenAPI spec from the endpoint.
+
+Command execution errors are returned as error responses from the `command_line` tool rather than aborting the server.

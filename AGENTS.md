@@ -26,7 +26,7 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 - Update `README.md` and this `AGENTS.md` with high-level changes.
 - Maintain `docs/` and its `INDEX.md` with every code change.
 - When work on a feature or fix is complete, create a pull request to merge the branch into `main`.
-- **Branch naming**: Branches should be named after the feature being implemented, not the kanban task ID (e.g., `feat/argument-parser` instead of `wt/t_458a6dc1`).
+- **Branch naming**: Branches should be named after the feature being implemented, not the kanban task ID (e.g., `feat/orc-client-integration` instead of `wt/t_d0800fa1`).
 - **Existing branches**: Existing branches can be reused so long as they are updated via `origin/main` prior to starting any work.
 
 ### 4. Project Structure
@@ -38,14 +38,19 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 |   |-- index.ts    // Entry point — exports and server bootstrap
 |   |-- mcp/        // MCP server implementation
 |   |   |-- validation.ts  // ORCA_SPEC_ENDPOINT validation
-|   |   |-- server.ts     // MCP server setup and tool registration
+|   |   |-- server.ts     // MCP server setup, ORCClient init, and tool registration
 |   |   |-- tools/        // Tool implementations
 |   |       |-- index.ts      // Tool exports
 |   |       |-- input-parser.ts  // Quote-aware CLI argument parser
 |   |       |-- format-args.ts // Placeholder logic for argument output
+|   |-- orc/        // ORC client modules
+|       |-- client.ts      // OrcClient, command map builder, parser, resolver, help
+|       |-- index.ts       // Barrel export for all ORC modules
+|       |-- types.ts       // Type definitions for ORCClient and command map
 |-- tests/          // Test suite
 |   |-- mcp/        // MCP tool tests
 |       |-- input-tool-test.ts  // Tests for parseArguments and formatArguments
+|   |-- orc-spec-parser.ts  // Tests for command map, parser, resolver, help
 |-- docs/           // Top-level directory for all technical documentation
    |-- INDEX.md    // Index of all docs and sub-directories
    |-- .../        // Sub-directories and corresponding INDEX.md files as needed
@@ -55,8 +60,9 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 
 - **Single string input**: All command arguments are accepted through one string. The agent must parse this input and route to the appropriate OpenAPI operation.
 - **Quote-aware argument parsing**: The `parseArguments()` function splits on whitespace while preserving quoted strings (single `'` or double `"`) and escaped characters (`\"` and `\'`). Quotes are preserved in the output.
+- **ORCClient integration**: The `OrcClient` class is initialized in `src/mcp/server.ts` during startup. It fetches the OpenAPI spec from `ORCA_SPEC_ENDPOINT`, builds a command map, and delegates all command execution to the remote service. The server will abort if initialization fails.
+- **Dynamic `--help`**: The `command_line` tool supports `--help`, `--help <resource>`, and `--help <resource> <function>` commands that generate help text from the fetched spec.
 - **Placeholder logic**: The `formatArguments()` function pretty-prints parsed arguments as a multi-line string with indexed entries wrapped in single quotes. Use this for readable output formatting.
-- **Auto-generated `--help`**: Use the OpenAPI spec to generate help text for resources, functions, and inputs. Agents should leverage this to reduce context consumption.
 - **OpenAPI-first**: The spec defines exactly how the remote service accepts requests. Never assume behavior not documented in the spec.
 - **Context efficiency**: For locally-hosted LLMs, context consumption is critical. Use `--help` flags strategically to load context only when needed.
 
@@ -64,7 +70,7 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 
 - Run existing tests before making changes to ensure nothing breaks.
 - Write new tests for every feature or bug fix.
-- Tests should cover input parsing, OpenAPI spec routing, and help text generation.
+- Tests should cover input parsing, OpenAPI spec routing, help text generation, and ORCClient integration.
 
 ### 7. Common Tasks for Agents
 
@@ -72,6 +78,7 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 - **Modifying input parsing**: Ensure the single-string parser correctly routes to OpenAPI operations.
 - **Updating help text**: Regenerate from the OpenAPI spec when the remote service changes.
 - **Bug fixes**: Reproduce with tests, fix, and verify.
+- **Modifying the MCP tool**: Changes to `src/mcp/server.ts` affect how the `command_line` tool interfaces with the ORCClient — always test help routing and exec delegation.
 
 ### 8. Dependencies
 

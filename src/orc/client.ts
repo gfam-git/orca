@@ -226,11 +226,11 @@ export function buildCommandMap(spec: OpenApiSpec): CommandMap {
     for (const [method, operation] of Object.entries(methods)) {
       if (!isHttpMethod(method)) continue;
 
-      const tags = operation.tags || [];
-      const operationId = operation.operationId || "";
+      // const tags = operation.tags || [];
+      // const operationId = operation.operationId || "";
 
       // Determine resource and function name
-      const { resource, func } = resolveResourceAndFunction(pathTemplate, method, tags, operationId);
+      const { resource, func } = resolveResourceAndFunction(pathTemplate, method/*, tags, operationId*/);
 
       // Build function definition
       const funcDef: FuncDef = {
@@ -267,21 +267,21 @@ function isHttpMethod(method: string): boolean {
 function resolveResourceAndFunction(
   pathTemplate: string,
   method: string,
-  tags: string[],
-  operationId: string
+  // tags: string[],
+  // operationId: string
 ): { resource: string; func: string } {
   // Try tags first (most common convention)
-  if (tags.length > 0) {
-    const resource = tags[0].toLowerCase();
-    // Try to derive function from operationId
-    const func = deriveFunctionName(operationId, method, resource);
-    return { resource, func };
-  }
+  // if (tags.length > 0) {
+  //   const resource = tags[0].toLowerCase();
+  //   // Try to derive function from operationId
+  //   // const func = deriveFunctionName(operationId, method, resource);
+  //   // return { resource, func };
+  // }
 
   // Fall back to path-based resolution
   // Normalize path: remove leading slash, split by /
   const segments = pathTemplate
-    .replace(/^\//, "")
+    .replace(/{.*}\//, "")
     .split("/")
     .filter((s) => s.length > 0);
 
@@ -342,6 +342,7 @@ function getResourceDescription(spec: OpenApiSpec, resource: string): string | u
   // Check paths for resource-specific descriptions
   const paths = spec.paths || {};
   for (const [_path, _methods] of Object.entries(paths)) {
+    if (_path.split('/').length > 2) {continue;}
     for (const [_method, operation] of Object.entries(_methods)) {
       const tags = operation.tags || [];
       if (tags[0]?.toLowerCase() === resource) {

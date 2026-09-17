@@ -1,5 +1,5 @@
 // ORCa — entry point
-export { validateSpecEndpoint } from "./mcp/validation";
+export { validateSpecEndpoint, validateServiceEndpoint } from "./mcp/validation";
 export { parseArguments, formatArguments } from "./mcp/tools";
 
 // ORC modules — re-export for top-level package usage

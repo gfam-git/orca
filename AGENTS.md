@@ -10,6 +10,7 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 
 - ORC is an **LLM-first web protocol** alternative to MCP. Instead of exposing individual tools, it presents a single CLI-like interface backed by an OpenAPI spec.
 - The `ORCA_SPEC_ENDPOINT` environment variable must be set to the URL of the remote service serving the OpenAPI spec. The server validates this on startup and refuses to start if unset, empty, or not a valid URL.
+- The optional `ORCA_SERVICE_BASE_URL` environment variable can be set to a different URL for live API calls. When set, the client fetches the spec from `ORCA_SPEC_ENDPOINT` but sends API requests to `ORCA_SERVICE_BASE_URL`. When unset, it defaults to `ORCA_SPEC_ENDPOINT`.
 - Agents should treat ORCa as a **transitional bridge**: any MCP client can use it without codebase modifications.
 
 ### 2. Working With the Codebase
@@ -68,7 +69,7 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 
 ### 7. Common Tasks for Agents
 
-- **Adding a new OpenAPI-backed service**: Update `ORCA_SPEC_ENDPOINT` and verify the spec is accessible.
+|- **Adding a new OpenAPI-backed service**: Update `ORCA_SPEC_ENDPOINT` and verify the spec is accessible. For services where the API endpoint differs from the spec endpoint, also set `ORCA_SERVICE_BASE_URL`.
 - **Modifying input parsing**: Ensure the single-string parser correctly routes to OpenAPI operations.
 - **Updating help text**: Regenerate from the OpenAPI spec when the remote service changes.
 - **Bug fixes**: Reproduce with tests, fix, and verify.

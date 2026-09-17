@@ -768,14 +768,16 @@ export function helpFunction(commandMap: CommandMap, resource: string, func: str
 export class OrcClient implements ORCClient {
   isConnected = false;
   url = "";
+  serviceBaseUrl: string | undefined = undefined;
   spec: unknown = null;
   commandMap: CommandMap = {};
 
   /**
    * Connect to a remote service, fetch its OpenAPI spec, and parse it.
    * @param url The URL of the remote service's OpenAPI endpoint.
+   * @param serviceUrl Optional URL for live API calls (defaults to url if not provided).
    */
-  async connect(url: string): Promise<void> {
+  async connect(url: string, serviceUrl?: string): Promise<void> {
     // Validate URL
     try {
       new URL(url);
@@ -784,6 +786,7 @@ export class OrcClient implements ORCClient {
     }
 
     this.url = url;
+    this.serviceBaseUrl = serviceUrl || url;
     this.isConnected = false;
 
     // Fetch the spec
@@ -812,6 +815,7 @@ export class OrcClient implements ORCClient {
   disconnect(): void {
     this.isConnected = false;
     this.url = "";
+    this.serviceBaseUrl = undefined;
     this.spec = null;
     this.commandMap = {};
   }
@@ -871,6 +875,14 @@ export class OrcClient implements ORCClient {
 
     // Build the request URL
     let requestUrl = operation.path;
+
+    // Prepend service base URL if set
+    if (this.serviceBaseUrl) {
+      const base = this.serviceBaseUrl.endsWith('/')
+        ? this.serviceBaseUrl.slice(0, -1)
+        : this.serviceBaseUrl;
+      requestUrl = `${base}${operation.path}`;
+    }
 
     // Append query parameters
     const queryParts: string[] = [];

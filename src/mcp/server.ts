@@ -1,4 +1,4 @@
-import { validateSpecEndpoint } from "./validation";
+import { validateSpecEndpoint, validateServiceEndpoint } from "./validation";
 import { OrcClient, OrcSpecError } from "../orc";
 
 /**
@@ -21,6 +21,11 @@ export async function startServer(): Promise<void> {
   const endpoint = validateSpecEndpoint();
 
   // -----------------------------------------------------------------------
+  // 1b. Validate the service base URL (falls back to spec endpoint)
+  // -----------------------------------------------------------------------
+  const serviceUrl = validateServiceEndpoint(endpoint);
+
+  // -----------------------------------------------------------------------
   // 2. Instantiate and connect ORCClient — fails fast on any init error
   // -----------------------------------------------------------------------
   let client: OrcClient;
@@ -35,7 +40,7 @@ export async function startServer(): Promise<void> {
   }
 
   try {
-    await client.connect(endpoint);
+    await client.connect(endpoint, serviceUrl);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
 

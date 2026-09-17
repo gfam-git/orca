@@ -117,6 +117,8 @@ export interface ORCClient {
   isConnected: boolean;
   /** The URL the client is connected to (set after connect) */
   url: string;
+  /** The base URL for live API calls (set after connect; defaults to url if unset) */
+  serviceBaseUrl?: string;
   /** The raw OpenAPI spec object (parsed) */
   spec: unknown;
   /** The parsed command map */

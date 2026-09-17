@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// ORCA_SPEC_ENDPOINT validation
+// ORCA_SPEC_ENDPOINT and ORCA_SERVICE_BASE_URL validation
 // ---------------------------------------------------------------------------
 
 export function validateSpecEndpoint(): string {
@@ -26,4 +26,26 @@ export function validateSpecEndpoint(): string {
   }
 
   return endpoint;
+}
+
+/**
+ * Validate ORCA_SERVICE_BASE_URL environment variable.
+ * Returns the URL if set and valid, otherwise returns the spec endpoint.
+ */
+export function validateServiceEndpoint(specEndpoint: string): string {
+  const serviceUrl = process.env.ORCA_SERVICE_BASE_URL;
+
+  if (!serviceUrl || serviceUrl.trim() === "") {
+    return specEndpoint;
+  }
+
+  try {
+    new URL(serviceUrl);
+  } catch {
+    console.error(`WARNING: ORCA_SERVICE_BASE_URL is not a valid URL: ${serviceUrl}`);
+    console.error("  Falling back to ORCA_SPEC_ENDPOINT for API calls.");
+    return specEndpoint;
+  }
+
+  return serviceUrl;
 }

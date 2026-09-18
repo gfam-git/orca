@@ -44,9 +44,10 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 |   |       |-- index.ts      // Tool exports
 |   |       |-- input-parser.ts  // Quote-aware CLI argument parser
 |   |       |-- format-args.ts // Placeholder logic for argument output
-|-- tests/          // Test suite
-|   |-- mcp/        // MCP tool tests
-|       |-- input-tool-test.ts  // Tests for parseArguments and formatArguments
+||-- tests/          // Test suite
+||   |-- mcp/        // MCP tool tests
+||   |   |-- input-tool-test.ts  // Tests for parseArguments and formatArguments
+||   |-- browser-interaction-test.ts  // Tests for browser interaction MCP tools
 |-- docs/           // Top-level directory for all technical documentation
    |-- INDEX.md    // Index of all docs and sub-directories
    |-- .../        // Sub-directories and corresponding INDEX.md files as needed
@@ -59,7 +60,9 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 - **Placeholder logic**: The `formatArguments()` function pretty-prints parsed arguments as a multi-line string with indexed entries wrapped in single quotes. Use this for readable output formatting.
 - **Auto-generated `--help`**: Use the OpenAPI spec to generate help text for resources, functions, and inputs. Agents should leverage this to reduce context consumption.
 - **OpenAPI-first**: The spec defines exactly how the remote service accepts requests. Never assume behavior not documented in the spec.
-- **Context efficiency**: For locally-hosted LLMs, context consumption is critical. Use `--help` flags strategically to load context only when needed.
+|- **Context efficiency**: For locally-hosted LLMs, context consumption is critical. Use `--help` flags strategically to load context only when needed.
+|- **Browser navigation**: Tools like `browser_back`, `browser_forward`, `browser_refresh`, and `browser_viewport` control browser state. Each requires `userId` and `tabId`.
+|- **Browser interaction**: Tools like `browser_click`, `browser_type`, `browser_scroll`, `browser_press`, `browser_select`, `browser_upload`, and `browser_wait` interact with web page elements. Each accepts `userId`, `tabId`, and tool-specific parameters (e.g., `ref`, `selector`, `text`, `direction`, `key`, `option`, `path`, `selector` for wait).
 
 ### 6. Testing
 

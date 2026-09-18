@@ -18,7 +18,9 @@ This project, _ORCa_, is a proof-of-concept implementation that utilizes the alr
 |- `ORCA_SPEC_ENDPOINT` environment variable validation on server startup — the server refuses to start if unset, empty, or not a valid URL.
 |- `ORCA_SERVICE_BASE_URL` optional environment variable for separating the spec endpoint from the live API endpoint — when unset, defaults to the spec endpoint value.
 - Quote-aware CLI argument parser that splits on whitespace while preserving quoted strings and escaped characters.
-- `formatArguments()` placeholder logic that pretty-prints parsed arguments as an indexed, single-quoted list.
+|- `formatArguments()` placeholder logic that pretty-prints parsed arguments as an indexed, single-quoted list.
+|- **Browser navigation tools** — `browser_back`, `browser_forward`, `browser_refresh`, `browser_viewport` for controlling browser state.
+|- **Browser interaction tools** — `browser_click`, `browser_type`, `browser_scroll`, `browser_press`, `browser_select`, `browser_upload`, `browser_wait` for interacting with web page elements.
 
 ### Why?
 
@@ -145,9 +147,10 @@ No need to repeate the project files and directories verbatim, but outline the o
 |   |       |-- index.ts      // Tool exports
 |   |       |-- input-parser.ts  // Quote-aware CLI argument parser
 |   |       |-- format-args.ts // Placeholder logic for argument output
-|-- tests/
-|   |-- mcp/        // Test suite
-|       |-- input-tool-test.ts  // Tests for parseArguments and formatArguments
+||-- tests/
+||   |-- mcp/        // Test suite
+||   |   |-- input-tool-test.ts  // Tests for parseArguments and formatArguments
+||   |-- browser-interaction-test.ts  // Tests for browser interaction MCP tools
 |-- docs/           // Top-level directory for all technical documentation.
    |-- INDEX.md    // Index of all docs and sub-directories in the docs folder. Similar to `index.ts` but for documentation.
    |-- .../        // Sub-directories and corresponding INDEX.md files created as-needed.

@@ -1,6 +1,73 @@
 import { validateSpecEndpoint, validateServiceEndpoint } from "./validation";
 import { OrcClient, OrcSpecError } from "../orc";
 
+// ---------------------------------------------------------------------------
+// Content extraction helpers — dedicated MCP resources
+// ---------------------------------------------------------------------------
+
+const contentExtractionEndpoints: Record<
+  string,
+  { path: string; summary: string; description: string }
+> = {
+  browser_links: {
+    path: "/tabs/{tabId}/links",
+    summary: "Extract page links",
+    description:
+      "Extract all hyperlinks from the current page, returning text, href, and element ref for each link.",
+  },
+  browser_downloads: {
+    path: "/tabs/{tabId}/downloads",
+    summary: "List tab downloads",
+    description:
+      "List all file downloads associated with the current tab, including filename, URL, and download state.",
+  },
+  browser_images: {
+    path: "/tabs/{tabId}/images",
+    summary: "Extract page images",
+    description:
+      "Extract all images from the current page, returning src, alt text, and dimensions for each image.",
+  },
+  browser_stats: {
+    path: "/tabs/{tabId}/stats",
+    summary: "Get tab statistics",
+    description:
+      "Retrieve tab metadata including URL, tool call count, visited URLs, download count, and consecutive failure count.",
+  },
+  browser_screenshot: {
+    path: "/tabs/{tabId}/screenshot",
+    summary: "Take a screenshot",
+    description:
+      "Capture a base64-encoded PNG screenshot of the current page viewport.",
+  },
+};
+
+/**
+ * Execute a content extraction action against the ORC client's connected service.
+ * Routes through the existing OrcClient which handles the HTTP call to the OpenAPI spec endpoint.
+ */
+async function execContentExtraction(
+  client: OrcClient,
+  endpoint: string,
+  userId: string,
+  tabId: string
+): Promise<string> {
+  const extractInfo = contentExtractionEndpoints[endpoint];
+  if (!extractInfo) {
+    throw new OrcSpecError(`Unknown content extraction endpoint: ${endpoint}`);
+  }
+
+  // Build the command string for the ORC client
+  // Format: <resource> <function> --userId <userId> --tabId <tabId>
+  const resource = "tabs";
+  const func = endpoint.replace("browser_", ""); // e.g., "links", "downloads", "images", "stats", "screenshot"
+
+  let cmd = `${resource} ${func}`;
+  cmd += ` --userId '${userId}'`;
+  cmd += ` --tabId '${tabId}'`;
+
+  return client.exec(cmd);
+}
+
 /**
  * MCP server setup — only runs when this file is executed directly.
  * Wires ORCClient into the server lifecycle:
@@ -8,6 +75,7 @@ import { OrcClient, OrcSpecError } from "../orc";
  *  - connects to the remote OpenAPI spec
  *  - builds the command map
  *  - registers tools that route through the ORCClient
+ *  - registers dedicated content extraction tools
  *  - fails fast on any initialization error
  */
 export async function startServer(): Promise<void> {
@@ -145,7 +213,89 @@ export async function startServer(): Promise<void> {
   );
 
   // -----------------------------------------------------------------------
-  // 5. Start listening
+  // 5. Register dedicated content extraction tools
+  // -----------------------------------------------------------------------
+  for (const [toolName, extractInfo] of Object.entries(contentExtractionEndpoints)) {
+    let inputSchema: any;
+    let description: string;
+
+    // Define per-tool input schemas
+    switch (toolName) {
+      case "browser_links":
+        inputSchema = z.object({
+          userId: z.string().describe("User identifier"),
+          tabId: z.string().describe("Tab identifier"),
+        });
+        description = `Extract all hyperlinks from the current page. ${extractInfo.description}`;
+        break;
+
+      case "browser_downloads":
+        inputSchema = z.object({
+          userId: z.string().describe("User identifier"),
+          tabId: z.string().describe("Tab identifier"),
+        });
+        description = `List all file downloads associated with the current tab. ${extractInfo.description}`;
+        break;
+
+      case "browser_images":
+        inputSchema = z.object({
+          userId: z.string().describe("User identifier"),
+          tabId: z.string().describe("Tab identifier"),
+        });
+        description = `Extract all images from the current page. ${extractInfo.description}`;
+        break;
+
+      case "browser_stats":
+        inputSchema = z.object({
+          userId: z.string().describe("User identifier"),
+          tabId: z.string().describe("Tab identifier"),
+        });
+        description = `Retrieve tab metadata including URL, tool call count, visited URLs, download count, and consecutive failure count. ${extractInfo.description}`;
+        break;
+
+      case "browser_screenshot":
+        inputSchema = z.object({
+          userId: z.string().describe("User identifier"),
+          tabId: z.string().describe("Tab identifier"),
+        });
+        description = `Capture a base64-encoded PNG screenshot of the current page viewport. ${extractInfo.description}`;
+        break;
+
+      default:
+        inputSchema = z.object({
+          userId: z.string().describe("User identifier"),
+          tabId: z.string().describe("Tab identifier"),
+        });
+        description = extractInfo.description;
+        break;
+    }
+
+    server.registerTool(
+      toolName,
+      {
+        title: extractInfo.summary,
+        description,
+        inputSchema,
+      },
+      async ({ userId, tabId }: { userId: string; tabId: string }) => {
+        try {
+          const result = await execContentExtraction(client, toolName, userId, tabId);
+          return {
+            content: [{ type: "text" as const, text: result }],
+          };
+        } catch (err) {
+          const message = err instanceof OrcSpecError ? err.message : String(err);
+          return {
+            content: [{ type: "text" as const, text: `Error: ${message}` }],
+            isError: true,
+          };
+        }
+      }
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // 6. Start listening
   // -----------------------------------------------------------------------
   const transport = new StdioServerTransport();
   await server.connect(transport);

@@ -1,6 +1,78 @@
 import { validateSpecEndpoint } from "./validation";
 import { OrcClient, OrcSpecError } from "../orc";
 
+// ---------------------------------------------------------------------------
+// Browser navigation helpers — dedicated MCP resources
+// ---------------------------------------------------------------------------
+
+const browserNavigationEndpoints: Record<
+  string,
+  { path: string; summary: string; description: string }
+> = {
+  browser_back: {
+    path: "/tabs/{tabId}/back",
+    summary: "Go back in browser history",
+    description:
+      "Navigate the active tab back in the browser history, equivalent to pressing the browser's back button.",
+  },
+  browser_forward: {
+    path: "/tabs/{tabId}/forward",
+    summary: "Go forward in browser history",
+    description:
+      "Navigate the active tab forward in the browser history, equivalent to pressing the browser's forward button.",
+  },
+  browser_refresh: {
+    path: "/tabs/{tabId}/refresh",
+    summary: "Refresh the current page",
+    description:
+      "Reload the current page in the active tab, equivalent to pressing F5 or clicking the browser's refresh button.",
+  },
+  browser_viewport: {
+    path: "/tabs/{tabId}/viewport",
+    summary: "Set page viewport size",
+    description:
+      "Physically resize the page viewport. Use for responsive testing — triggers a real layout reflow via Playwright's page.setViewportSize.",
+  },
+};
+
+/**
+ * Execute a browser navigation action against the ORC client's connected service.
+ * Routes through the existing OrcClient which handles the HTTP call to the OpenAPI spec endpoint.
+ */
+async function execBrowserNavigation(
+  client: OrcClient,
+  endpoint: string,
+  userId: string,
+  tabId: string,
+  extraParams: Record<string, unknown> = {}
+): Promise<string> {
+  const navInfo = browserNavigationEndpoints[endpoint];
+  if (!navInfo) {
+    throw new OrcSpecError(`Unknown browser navigation endpoint: ${endpoint}`);
+  }
+
+  // Build the command string for the ORC client
+  // Format: <resource> <function> --userId <userId> --tabId <tabId> [extra params]
+  const resource = "tabs";
+  const func = endpoint.replace("browser_", ""); // e.g., "back", "forward", "refresh", "viewport"
+
+  let cmd = `${resource} ${func}`;
+  cmd += ` --userId '${userId}'`;
+  cmd += ` --tabId '${tabId}'`;
+
+  // Add viewport dimensions if applicable
+  if (endpoint === "browser_viewport") {
+    if (extraParams.width !== undefined) {
+      cmd += ` --width '${extraParams.width}'`;
+    }
+    if (extraParams.height !== undefined) {
+      cmd += ` --height '${extraParams.height}'`;
+    }
+  }
+
+  return client.exec(cmd);
+}
+
 /**
  * MCP server setup — only runs when this file is executed directly.
  * Wires ORCClient into the server lifecycle:
@@ -8,6 +80,7 @@ import { OrcClient, OrcSpecError } from "../orc";
  *  - connects to the remote OpenAPI spec
  *  - builds the command map
  *  - registers tools that route through the ORCClient
+ *  - registers dedicated browser navigation tools
  *  - fails fast on any initialization error
  */
 export async function startServer(): Promise<void> {
@@ -140,7 +213,59 @@ export async function startServer(): Promise<void> {
   );
 
   // -----------------------------------------------------------------------
-  // 5. Start listening
+  // 5. Register dedicated browser navigation tools
+  // -----------------------------------------------------------------------
+  for (const [toolName, navInfo] of Object.entries(browserNavigationEndpoints)) {
+    let inputSchema: any;
+    let description: string;
+
+    if (toolName === "browser_viewport") {
+      inputSchema = z.object({
+        userId: z.string().describe("User identifier"),
+        tabId: z.string().describe("Tab identifier"),
+        width: z.number().optional().describe("Viewport width in pixels"),
+        height: z.number().optional().describe("Viewport height in pixels"),
+      });
+      description = `Set page viewport size. ${navInfo.description}`;
+    } else {
+      inputSchema = z.object({
+        userId: z.string().describe("User identifier"),
+        tabId: z.string().describe("Tab identifier"),
+      });
+      description = navInfo.description;
+    }
+
+    server.registerTool(
+      toolName,
+      {
+        title: navInfo.summary,
+        description,
+        inputSchema,
+      },
+      async ({ userId, tabId, width, height }: { userId: string; tabId: string; width?: number; height?: number }) => {
+        const extraParams: Record<string, unknown> = {};
+        if (toolName === "browser_viewport") {
+          if (width !== undefined) extraParams.width = width;
+          if (height !== undefined) extraParams.height = height;
+        }
+        try {
+          const result = await execBrowserNavigation(client, toolName, userId, tabId, extraParams);
+          return {
+            content: [{ type: "text" as const, text: result }],
+          };
+        } catch (err) {
+          const message = err instanceof OrcSpecError ? err.message : String(err);
+          return {
+            content: [{ type: "text" as const, text: `Error: ${message}` }],
+            isError: true,
+          };
+        }
+      }
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // 6. Start listening
   // -----------------------------------------------------------------------
   const transport = new StdioServerTransport();
   await server.connect(transport);

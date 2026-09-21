@@ -281,7 +281,7 @@ function resolveResourceAndFunction(
   // Fall back to path-based resolution
   // Normalize path: remove leading slash, split by /
   const segments = pathTemplate
-    .replace(/{.*}\//, "")
+    .replace(/\{[^/]*\}/g, "")
     .split("/")
     .filter((s) => s.length > 0);
 

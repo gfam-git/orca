@@ -379,6 +379,7 @@ function buildParamDefs(operation: OpenApiOperation, pathTemplate: string): Para
     const location = (param.in || "query") as "query" | "path" | "body";
     const isBoolean = paramType === "boolean";
 
+    const isJson = paramType === "object" || paramType === "array";
     params.push({
       name: param.name,
       type: paramType,
@@ -386,6 +387,7 @@ function buildParamDefs(operation: OpenApiOperation, pathTemplate: string): Para
       required: param.required === true,
       boolean: isBoolean,
       location,
+      json: isJson,
     });
   }
 
@@ -415,13 +417,16 @@ function buildParamDefs(operation: OpenApiOperation, pathTemplate: string): Para
             for (const [propName, propSchema] of Object.entries(schema.properties)) {
               const existing = params.find((p) => p.name === propName);
               if (!existing) {
+                const pType = propSchema.type || "string";
+                const isJson = pType === "object" || pType === "array";
                 params.push({
                   name: propName,
-                  type: propSchema.type || "string",
+                  type: pType,
                   description: propSchema.description,
                   required: required.includes(propName),
-                  boolean: propSchema.type === "boolean",
+                  boolean: pType === "boolean",
                   location: "body",
+                  json: isJson,
                 });
               }
             }
@@ -442,12 +447,16 @@ function buildParamDefs(operation: OpenApiOperation, pathTemplate: string): Para
  * Parse a command string into its components (resource, function, flags).
  * Format: resource function [--flag value] [--flag2]
  * Boolean flags: --flag true === --flag, --flag false === omit flag
+ *
+ * Quote handling: outer quotes are stripped, internal quotes are preserved.
+ * E.g. "--schema '{"type":"object"}'" → schema = {"type":"object"}
  */
 export function parseCommand(command: string): ParsedCommand {
   // Split on whitespace, preserving quoted strings
   const args: string[] = [];
   let current = "";
-  let inQuote: string | null = null;
+  let inQuote = false;
+  let quoteChar: string | null = null;
   let escaped = false;
 
   for (let i = 0; i < command.length; i++) {
@@ -465,20 +474,27 @@ export function parseCommand(command: string): ParsedCommand {
       continue;
     }
 
-    if (inQuote !== null && ch === inQuote) {
-      inQuote = null;
+    // If inside quotes, accumulate everything including internal quotes
+    if (inQuote) {
+      if (ch === quoteChar) {
+        // Closing quote — skip it, don't include in current
+        inQuote = false;
+        quoteChar = null;
+        continue;
+      }
+      current += ch;
       continue;
     }
 
-    if ((ch === '"' || ch === "'") && inQuote === null) {
-      inQuote = ch;
+    // Start a new quoted region (only at token boundary)
+    if ((ch === '"' || ch === "'") && current.length === 0) {
+      inQuote = true;
+      quoteChar = ch;
       continue;
     }
 
     if (ch === " " || ch === "\t" || ch === "\n" || ch === "\r") {
-      if (inQuote !== null) {
-        current += ch;
-      } else if (current.length > 0) {
+      if (current.length > 0) {
         args.push(current);
         current = "";
       }
@@ -581,11 +597,29 @@ export function resolveOperation(
         const pathVal = flagValue === true ? "" : String(flagValue);
         resolvedPath = resolvedPath.replace(`{${param.name}}`, pathVal);
       } else if (param.location === "query") {
-        query[param.name] = flagValue;
+        // JSON-type query params: try to parse as JSON object/array
+        if (param.json && typeof flagValue === "string") {
+          try {
+            const parsed = JSON.parse(flagValue);
+            query[param.name] = parsed;
+          } catch {
+            // Not valid JSON — keep as string
+            query[param.name] = flagValue;
+          }
+        } else {
+          query[param.name] = flagValue;
+        }
       } else if (param.location === "body") {
         // Coerce body param value to param type
         let bodyVal: unknown = flagValue;
-        if (param.type === "number" && typeof flagValue === "string") {
+        if (param.json && typeof flagValue === "string") {
+          // JSON-type: parse the string as JSON object/array
+          try {
+            bodyVal = JSON.parse(flagValue);
+          } catch {
+            // Not valid JSON — keep as string
+          }
+        } else if (param.type === "number" && typeof flagValue === "string") {
           const num = Number(flagValue);
           bodyVal = !isNaN(num) ? num : flagValue;
         } else if (param.type === "boolean" && typeof flagValue === "string") {

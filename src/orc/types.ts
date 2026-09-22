@@ -65,6 +65,8 @@ export interface ParamDef {
   boolean: boolean;
   /** Where this parameter lives in the HTTP request */
   location: "query" | "path" | "body";
+  /** Whether this parameter should be parsed as JSON (object/array types) */
+  json?: boolean;
 }
 
 /** A function (operation) on a resource. */

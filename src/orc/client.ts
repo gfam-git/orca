@@ -802,7 +802,12 @@ export class OrcClient implements ORCClient {
     }
 
     this.url = url;
-    this.serviceBaseUrl = serviceUrl || url;
+
+    // Derive the service base URL: strip the spec path suffix (e.g., /openapi.json)
+    // so that request paths are prepended to the correct base (e.g., /health not /openapi.json/health)
+    const specPath = new URL(url).pathname;
+    const baseFromUrl = url.slice(0, -specPath.length);
+    this.serviceBaseUrl = serviceUrl || baseFromUrl;
     this.isConnected = false;
 
     // Fetch the spec

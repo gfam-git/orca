@@ -281,7 +281,7 @@ function resolveResourceAndFunction(
   // Fall back to path-based resolution
   // Normalize path: remove leading slash, split by /
   const segments = pathTemplate
-    .replace(/{.*}\//, "")
+    .replace(/\{[^/]*\}/g, "")
     .split("/")
     .filter((s) => s.length > 0);
 
@@ -577,12 +577,21 @@ export function resolveOperation(
 
     if (flagValue !== undefined) {
       if (param.location === "path") {
-        // Replace path placeholder with flag value
-        resolvedPath = resolvedPath.replace(`{${param.name}}`, String(flagValue));
+        // Replace path placeholder with flag value; true (no value) → empty string
+        const pathVal = flagValue === true ? "" : String(flagValue);
+        resolvedPath = resolvedPath.replace(`{${param.name}}`, pathVal);
       } else if (param.location === "query") {
         query[param.name] = flagValue;
       } else if (param.location === "body") {
-        body[param.name] = flagValue;
+        // Coerce body param value to param type
+        let bodyVal: unknown = flagValue;
+        if (param.type === "number" && typeof flagValue === "string") {
+          const num = Number(flagValue);
+          bodyVal = !isNaN(num) ? num : flagValue;
+        } else if (param.type === "boolean" && typeof flagValue === "string") {
+          bodyVal = flagValue === "true";
+        }
+        body[param.name] = bodyVal;
       }
     } else if (param.required && param.location === "path") {
       throw new OrcSpecError(`Missing required path parameter: ${param.name}`);
@@ -625,16 +634,23 @@ function findPathTemplate(spec: OpenApiSpec, resource: string, func: string): [s
       }
 
       // Match by path structure
-      const segments = pathTemplate.replace(/^\//, "").split("/").filter((s) => s.length > 0);
+      const segments = pathTemplate
+        .replace(/^\//, "")
+        .split("/")
+        .filter((s) => s.length > 0)
+        .map((s) => s.replace(/\{[^}]*\}/g, ""))
+        .filter((s) => s.length > 0);
+      const methodLower = method.toLowerCase();
       if (segments.length >= 2) {
-        if (segments[0].toLowerCase() === resource) {
-          const secondSegment = segments[1].toLowerCase();
-          const methodLower = method.toLowerCase();
+        if (segments[0] === resource) {
+          const secondSegment = segments[1];
 
           if (secondSegment === func || secondSegment === methodLower) {
             return [pathTemplate, method.toUpperCase()];
           }
         }
+      } else if (segments.length === 1 && segments[0] === resource && func === methodLower) {
+        return [pathTemplate, method.toUpperCase()];
       }
     }
   }

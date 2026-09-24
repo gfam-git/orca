@@ -10,7 +10,14 @@ import {
   ResolvedOperation,
   ORCClient,
   ParsedCommand,
+  AuthConfig,
+  SecurityScheme,
 } from "./types";
+import {
+  parseAuthConfig,
+  injectAuthHeaders,
+  injectApiKeyQuery,
+} from "./auth";
 
 // ---------------------------------------------------------------------------
 // OpenAPI spec types (minimal, for parsing)
@@ -21,7 +28,7 @@ interface OpenApiSpec {
   info?: { title?: string; description?: string };
   servers?: { url?: string }[];
   paths?: Record<string, Record<string, OpenApiOperation>>;
-  components?: { schemas?: Record<string, OpenApiSchema> };
+  components?: { schemas?: Record<string, OpenApiSchema>; securitySchemes?: Record<string, SecurityScheme> };
 }
 
 interface OpenApiOperation {
@@ -872,6 +879,7 @@ export class OrcClient implements ORCClient {
   serviceBaseUrl: string | undefined = undefined;
   spec: unknown = null;
   commandMap: CommandMap = {};
+  authConfig: AuthConfig = { method: "none" };
 
   /**
    * Connect to a remote service, fetch its OpenAPI spec, and parse it.
@@ -912,6 +920,11 @@ export class OrcClient implements ORCClient {
       this.serviceBaseUrl = detectedServer;
     }
 
+    // Parse authentication config from spec securitySchemes + env vars
+    const specTyped = this.spec as OpenApiSpec;
+    const securitySchemes = specTyped.components?.securitySchemes;
+    this.authConfig = parseAuthConfig(securitySchemes);
+
     // Build the command map
     this.commandMap = buildCommandMap(this.spec as OpenApiSpec);
 
@@ -925,6 +938,7 @@ export class OrcClient implements ORCClient {
     this.serviceBaseUrl = undefined;
     this.spec = null;
     this.commandMap = {};
+    this.authConfig = { method: "none" };
   }
 
   /** Get the OpenAPI spec as a JSON string. */
@@ -1004,6 +1018,12 @@ export class OrcClient implements ORCClient {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
+
+    // Inject authentication headers
+    injectAuthHeaders(headers, this.authConfig);
+
+    // Inject API key as query param if needed
+    injectApiKeyQuery(operation.query, this.authConfig);
 
     const body = operation.body ? JSON.stringify(operation.body) : undefined;
 

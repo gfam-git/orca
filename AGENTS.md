@@ -20,6 +20,20 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 - **Language**: TypeScript (via the MCP TypeScript SDK).
 - **ORCA_SPEC_ENDPOINT**: This environment variable is populated by end-users running the server, not by developers or agents during development.
 
+### 2b. Authentication Environment Variables
+
+ORCa supports API authentication via environment variables. The `ORCA_AUTH_METHOD` variable is required and expects a value of `none`, `bearer`, `basic`, or `apikey`. This overrides any auth inferred from the OpenAPI spec's `components.securitySchemes`.
+
+- `ORCA_AUTH_METHOD` — Required. One of: `none`, `bearer`, `basic`, `apikey`.
+- `ORCA_AUTH_BEARER_TOKEN` — Required when `ORCA_AUTH_METHOD=bearer`. The bearer token value.
+- `ORCA_AUTH_BASIC_USERNAME` — Required when `ORCA_AUTH_METHOD=basic`. The basic auth username.
+- `ORCA_AUTH_BASIC_PASSWORD` — Required when `ORCA_AUTH_METHOD=basic`. The basic auth password.
+- `ORCA_AUTH_APIKEY_NAME` — Required when `ORCA_AUTH_METHOD=apikey`. The API key parameter name.
+- `ORCA_AUTH_APIKEY_VALUE` — Required when `ORCA_AUTH_METHOD=apikey`. The API key value.
+- `ORCA_AUTH_APIKEY_IN` — Optional when `ORCA_AUTH_METHOD=apikey`. Where to inject the key: `header` (default), `query`, or `cookie`.
+
+If `ORCA_AUTH_METHOD` is not set, ORCa infers the auth method from the OpenAPI spec's first `securitySchemes` entry.
+
 ### 3. Development Workflow
 
 - Create new feature branches from `origin/main`.
@@ -44,6 +58,11 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 |   |       |-- index.ts      // Tool exports
 |   |       |-- input-parser.ts  // Quote-aware CLI argument parser
 |   |       |-- format-args.ts // Placeholder logic for argument output
+|   |-- orc/          // ORC client implementation
+|       |-- auth.ts       // Authentication env var parsing and header injection
+|       |-- client.ts     // ORCClient — OpenAPI spec fetch, command routing, exec
+|       |-- index.ts      // Barrel export for orc module
+|       |-- types.ts      // Type definitions (CommandMap, ParamDef, AuthConfig, etc.)
 |-- tests/          // Test suite
 |   |-- mcp/        // MCP tool tests
 |       |-- input-tool-test.ts  // Tests for parseArguments and formatArguments

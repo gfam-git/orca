@@ -14,6 +14,11 @@ export {
   helpFunction,
   extractServerUrl,
 } from "./orc/client";
+export {
+  parseAuthConfig,
+  injectAuthHeaders,
+  injectApiKeyQuery,
+} from "./orc/auth";
 export type {
   ParamDef,
   FuncDef,
@@ -22,6 +27,9 @@ export type {
   ResolvedOperation,
   ORCClient,
   ParsedCommand,
+  AuthConfig,
+  AuthMethod,
+  SecurityScheme,
 } from "./orc/types";
 
 // Start the MCP server when run directly

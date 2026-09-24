@@ -125,6 +125,8 @@ export interface ORCClient {
   spec: unknown;
   /** The parsed command map */
   commandMap: CommandMap;
+  /** The resolved authentication configuration */
+  authConfig: AuthConfig;
 
   /**
    * Connect to a remote service, fetch its OpenAPI spec, and parse it.
@@ -184,4 +186,31 @@ export interface ParsedCommand {
   resource: string;
   func: string;
   flags: Record<string, string | boolean>;
+}
+
+// ---------------------------------------------------------------------------
+// Authentication types
+// ---------------------------------------------------------------------------
+
+/** Supported authentication methods */
+export type AuthMethod = "none" | "bearer" | "basic" | "apikey";
+
+/** Authentication configuration parsed from env vars */
+export interface AuthConfig {
+  method: AuthMethod;
+  bearerToken?: string;
+  basicUsername?: string;
+  basicPassword?: string;
+  apikeyName?: string;
+  apikeyValue?: string;
+  apikeyIn?: "header" | "query" | "cookie";
+}
+
+/** OpenAPI security scheme type mapping */
+export interface SecurityScheme {
+  type: string;
+  name?: string;
+  in?: string;
+  scheme?: string;
+  bearerFormat?: string;
 }

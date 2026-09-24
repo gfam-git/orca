@@ -16,3 +16,8 @@ export {
   helpFunction,
   OrcClient,
 } from "./client";
+export {
+  parseAuthConfig,
+  injectAuthHeaders,
+  injectApiKeyQuery,
+} from "./auth";

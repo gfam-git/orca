@@ -12,6 +12,7 @@ export {
   help,
   helpResource,
   helpFunction,
+  extractServerUrl,
 } from "./orc/client";
 export type {
   ParamDef,

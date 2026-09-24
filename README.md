@@ -16,7 +16,8 @@ This project, _ORCa_, is a proof-of-concept implementation that utilizes the alr
 - Automatically parse input and interact with attached service according to OpenAPI spec.
 - Automatically generate `--help` text based on resource, functions, and input descriptions in the OpenAPI spec.
 |- `ORCA_SPEC_ENDPOINT` environment variable validation on server startup — the server refuses to start if unset, empty, or not a valid URL.
-|- `ORCA_SERVICE_BASE_URL` optional environment variable for separating the spec endpoint from the live API endpoint — when unset, defaults to the spec endpoint value.
+|- `ORCA_SERVICE_BASE_URL` optional environment variable for separating the spec endpoint from the live API endpoint — when unset, the server automatically extracts a base URL from the OpenAPI spec's `servers` property (top-level or per-path). If no servers are defined, it falls back to the spec endpoint.
+|- Automatic backend detection from OpenAPI spec's `servers` property — extracts the first valid top-level server URL, or falls back to per-path servers if the top-level is missing or invalid.
 - Quote-aware CLI argument parser that splits on whitespace while preserving quoted strings and escaped characters.
 - `formatArguments()` placeholder logic that pretty-prints parsed arguments as an indexed, single-quoted list.
 

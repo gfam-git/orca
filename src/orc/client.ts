@@ -32,6 +32,7 @@ interface OpenApiOperation {
   parameters?: OpenApiParam[];
   requestBody?: OpenApiRequestBody;
   responses?: Record<string, OpenApiResponseBody>;
+  servers?: { url?: string }[];
   "x-method-type"?: string;
 }
 
@@ -201,6 +202,56 @@ function validateSpec(content: string): OpenApiSpec {
   }
 
   return spec;
+}
+
+// ---------------------------------------------------------------------------
+// Automatic server URL extraction from OpenAPI spec
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract the best available server URL from an OpenAPI spec.
+ * Priority: top-level servers[0].url, then first per-path server, then null.
+ * Only returns URLs that are valid (have a scheme or are absolute paths).
+ */
+export function extractServerUrl(spec: OpenApiSpec): string | null {
+  // 1. Try top-level servers
+  const topLevelServers = spec.servers;
+  if (topLevelServers && topLevelServers.length > 0) {
+    for (const server of topLevelServers) {
+      if (server && server.url && isValidServerUrl(server.url)) {
+        return server.url;
+      }
+    }
+  }
+
+  // 2. Fall back to per-path servers
+  const paths = spec.paths || {};
+  for (const [_path, methods] of Object.entries(paths)) {
+    const ops = methods as Record<string, OpenApiOperation>;
+    for (const [_method, operation] of Object.entries(ops)) {
+      const pathServers = operation.servers;
+      if (pathServers && pathServers.length > 0) {
+        for (const server of pathServers) {
+          if (server && server.url && isValidServerUrl(server.url)) {
+            return server.url;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/** Check if a server URL is valid for use as a base URL */
+function isValidServerUrl(urlStr: string): boolean {
+  try {
+    new URL(urlStr);
+    return true;
+  } catch {
+    // Not a valid URL — reject it
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -820,6 +871,12 @@ export class OrcClient implements ORCClient {
 
     // Parse and validate the spec
     this.spec = validateSpec(body);
+
+    // Auto-detect server URL from spec's servers property
+    const detectedServer = extractServerUrl(this.spec as OpenApiSpec);
+    if (detectedServer && !this.serviceBaseUrl) {
+      this.serviceBaseUrl = detectedServer;
+    }
 
     // Build the command map
     this.commandMap = buildCommandMap(this.spec as OpenApiSpec);

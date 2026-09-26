@@ -266,6 +266,28 @@ function isValidServerUrl(urlStr: string): boolean {
 // ---------------------------------------------------------------------------
 
 /**
+ * Parse ORCA_EXCLUDE_TAGS env var into a set of tag names to exclude.
+ * Returns an empty set if the variable is unset or empty.
+ */
+function getExcludedTags(): Set<string> {
+  const envVal = process.env.ORCA_EXCLUDE_TAGS;
+  if (!envVal || envVal.trim() === "") {
+    return new Set();
+  }
+  return new Set(envVal.split(",").map((t) => t.trim()).filter((t) => t.length > 0));
+}
+
+/**
+ * Check whether an operation should be excluded based on its tags and ORCA_EXCLUDE_TAGS.
+ */
+function isExcludedOperation(operation: OpenApiOperation): boolean {
+  const excluded = getExcludedTags();
+  if (excluded.size === 0) return false;
+  const tags = operation.tags || [];
+  return tags.some((tag) => excluded.has(tag));
+}
+
+/**
  * Build the command map from an OpenAPI spec.
  *
  * Mapping rules:
@@ -275,6 +297,7 @@ function isValidServerUrl(urlStr: string): boolean {
  * - If the function name matches the resource name, use the method type (e.g. "item get").
  * - Parameters become flags with --name value format.
  * - Boolean parameters: omit value if true, omit flag if false.
+ * - Operations with tags matching ORCA_EXCLUDE_TAGS are skipped.
  */
 export function buildCommandMap(spec: OpenApiSpec): CommandMap {
   const commandMap: CommandMap = {};
@@ -283,6 +306,9 @@ export function buildCommandMap(spec: OpenApiSpec): CommandMap {
   for (const [pathTemplate, methods] of Object.entries(paths)) {
     for (const [method, operation] of Object.entries(methods)) {
       if (!isHttpMethod(method)) continue;
+
+      // Skip operations whose tags match ORCA_EXCLUDE_TAGS
+      if (isExcludedOperation(operation)) continue;
 
       // const tags = operation.tags || [];
       // const operationId = operation.operationId || "";

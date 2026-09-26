@@ -20,7 +20,16 @@ ORCa (OpenAPI as Remote CLI) is a proof-of-concept implementation that wraps an 
 - **Language**: TypeScript (via the MCP TypeScript SDK).
 - **ORCA_SPEC_ENDPOINT**: This environment variable is populated by end-users running the server, not by developers or agents during development.
 
-### 2b. Authentication Environment Variables
+### 2b. Consult and Maintain Documentation
+
+**Before working on any new task or feature, always consult the `docs/` directory first.** The documentation is the authoritative reference for how ORCa works and should be your primary source of truth for project conventions, protocols, and usage patterns.
+
+- **Read before writing:** Review existing docs in `docs/` (and subdirectories) to understand the current state before making changes. Do not assume behavior that is not documented.
+- **Update alongside code:** When you modify code, update the corresponding documentation. If a feature, type, function, or behavior changes, ensure the docs reflect the new state.
+- **Keep INDEX.md current:** Every doc addition, removal, or rename must be recorded in `docs/INDEX.md`. The index is the entry point for navigating the documentation.
+- **Avoid stale documentation:** If a doc section becomes outdated due to code changes, update it or mark it as needing review. Never leave docs that contradict the actual implementation.
+
+### 2c. Authentication Environment Variables
 
 ORCa supports API authentication via environment variables. The `ORCA_AUTH_METHOD` variable is required and expects a value of `none`, `bearer`, `basic`, or `apikey`. This overrides any auth inferred from the OpenAPI spec's `components.securitySchemes`.
 
@@ -33,6 +42,17 @@ ORCa supports API authentication via environment variables. The `ORCA_AUTH_METHO
 - `ORCA_AUTH_APIKEY_IN` — Optional when `ORCA_AUTH_METHOD=apikey`. Where to inject the key: `header` (default), `query`, or `cookie`.
 
 If `ORCA_AUTH_METHOD` is not set, ORCa infers the auth method from the OpenAPI spec's first `securitySchemes` entry.
+
+### 2d. Tag-based Path Exclusion
+
+ORCa supports filtering out OpenAPI operations by tag via the `ORCA_EXCLUDE_TAGS` environment variable. This is useful for excluding deprecated, unused, or unwanted paths from the command map.
+
+- `ORCA_EXCLUDE_TAGS` — Optional. A comma-delimited string of tag names. Operations whose `tags` array contains any of these values are excluded from the command map.
+
+Example: to exclude operations tagged `act` or `default`:
+```
+ORCA_EXCLUDE_TAGS=act,default
+```
 
 ### 3. Development Workflow
 

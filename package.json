@@ -16,7 +16,7 @@
     "orca"
   ],
   "bin": {
-    "orca": "dist/index.ts"
+    "orca": "dist/index.js"
   },
   "author": "",
   "license": "ISC",

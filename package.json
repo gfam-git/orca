@@ -15,6 +15,9 @@
     "cli",
     "orca"
   ],
+  "bin": {
+    "orca": "bin/orca"
+  },
   "author": "",
   "license": "ISC",
   "devDependencies": {

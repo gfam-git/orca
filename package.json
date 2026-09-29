@@ -1,6 +1,6 @@
 {
   "name": "@adam-gfam/orca",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "ORCa - OpenAPI as Remote CLI",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,6 +1,7 @@
+#!/usr/bin/env node
 // ORCa — entry point
-export { validateSpecEndpoint, validateServiceEndpoint } from "./mcp/validation";
-export { parseArguments, formatArguments } from "./mcp/tools";
+export { validateSpecEndpoint, validateServiceEndpoint } from "./mcp/validation.js";
+export { parseArguments, formatArguments } from "./mcp/tools/index.js";
 
 // ORC modules — re-export for top-level package usage
 export {
@@ -13,12 +14,12 @@ export {
   helpResource,
   helpFunction,
   extractServerUrl,
-} from "./orc/client";
+} from "./orc/client.js";
 export {
   parseAuthConfig,
   injectAuthHeaders,
   injectApiKeyQuery,
-} from "./orc/auth";
+} from "./orc/auth.js";
 export type {
   ParamDef,
   FuncDef,
@@ -30,13 +31,13 @@ export type {
   AuthConfig,
   AuthMethod,
   SecurityScheme,
-} from "./orc/types";
+} from "./orc/types.js";
 
 // Start the MCP server when run directly
-const isMainModule = require.main === module;
+const isMainModule = process.argv[1] && (import.meta.url === new URL(import.meta.resolve(process.argv[1])).href);
 
 if (isMainModule) {
-  import("./mcp/server").then(({ startServer }) => {
+  import("./mcp/server.js").then(({ startServer }) => {
     startServer().catch((err: Error) => {
       console.error("Server error:", err);
       process.exit(1);

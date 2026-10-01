@@ -1,5 +1,5 @@
-import { validateSpecEndpoint, validateServiceEndpoint } from "./validation";
-import { OrcClient, OrcSpecError } from "../orc";
+import { validateSpecEndpoint, validateServiceEndpoint } from "./validation.js";
+import { OrcClient, OrcSpecError } from "../orc/index.js";
 
 /**
  * MCP server setup — only runs when this file is executed directly.

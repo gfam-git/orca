@@ -5,7 +5,7 @@
 // point so consumers can import everything from @adam-gfam/orca/orc.
 // ---------------------------------------------------------------------------
 
-export * from "./types";
+export * from "./types.js";
 export {
   OrcSpecError,
   buildCommandMap,
@@ -15,9 +15,9 @@ export {
   helpResource,
   helpFunction,
   OrcClient,
-} from "./client";
+} from "./client.js";
 export {
   parseAuthConfig,
   injectAuthHeaders,
   injectApiKeyQuery,
-} from "./auth";
+} from "./auth.js";

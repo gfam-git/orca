@@ -12,12 +12,12 @@ import {
   ParsedCommand,
   AuthConfig,
   SecurityScheme,
-} from "./types";
+} from "./types.js";
 import {
   parseAuthConfig,
   injectAuthHeaders,
   injectApiKeyQuery,
-} from "./auth";
+} from "./auth.js";
 
 // ---------------------------------------------------------------------------
 // OpenAPI spec types (minimal, for parsing)

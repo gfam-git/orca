@@ -3,7 +3,7 @@
 // and injects auth headers into requests.
 // ---------------------------------------------------------------------------
 
-import { AuthConfig, AuthMethod, SecurityScheme } from "./types";
+import { AuthConfig, AuthMethod, SecurityScheme } from "./types.js";
 
 /** Supported auth methods */
 const SUPPORTED_METHODS: AuthMethod[] = ["none", "bearer", "basic", "apikey"];

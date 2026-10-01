@@ -1,8 +1,8 @@
 {
   "name": "@adam-gfam/orca",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "ORCa - OpenAPI as Remote CLI",
-  "type": "module"
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -19,7 +19,7 @@
   "files": [
     "src/",
     "dist/"
-  ]
+  ],
   "bin": {
     "orca": "dist/index.js"
   },

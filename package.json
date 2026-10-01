@@ -2,6 +2,7 @@
   "name": "@adam-gfam/orca",
   "version": "1.0.4",
   "description": "ORCa - OpenAPI as Remote CLI",
+  "type": "module"
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -15,6 +16,10 @@
     "cli",
     "orca"
   ],
+  "files": [
+    "src/",
+    "dist/"
+  ]
   "bin": {
     "orca": "dist/index.js"
   },
@@ -22,7 +27,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^22.20.2",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.19.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {

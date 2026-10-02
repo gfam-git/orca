@@ -8,8 +8,8 @@
  * Run with: npx ts-node tests/mcp/json-param-parse-test.ts
  */
 
-import { buildParamDefs, parseCommand, resolveOperation } from '../dist/orc/client';
-import { ParamDef } from '../dist/orc/types';
+import { buildParamDefs, parseCommand, resolveOperation } from '../dist/orc/client.js';
+import { ParamDef } from '../dist/orc/types.js';
 
 // ──────────────────────────────────────────────
 // Test helpers

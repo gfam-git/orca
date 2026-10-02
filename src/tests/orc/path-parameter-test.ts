@@ -10,7 +10,7 @@
  * Run with: npx ts-node tests/orc/path-parameter-test.ts
  */
 
-import { buildCommandMap, parseCommand, resolveOperation } from '../../src/orc/client';
+import { buildCommandMap, parseCommand, resolveOperation } from '../../orc/client.js';
 
 // ──────────────────────────────────────────────
 // Test helpers

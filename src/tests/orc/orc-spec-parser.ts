@@ -13,8 +13,8 @@ import {
   helpResource,
   helpFunction,
   OrcSpecError,
-} from '../src/orc/client';
-import type { OpenApiSpec, ParsedCommand } from '../src/orc/types';
+} from '../../orc/client.js';
+import type { OpenApiSpec, ParsedCommand } from '../../orc/types.js';
 
 // ──────────────────────────────────────────────
 // Test helpers

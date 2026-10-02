@@ -5,7 +5,7 @@
  * Run with: npx ts-node tests/mcp/input-tool-test.ts
  */
 
-import { parseArguments, formatArguments } from '../index';
+import { parseArguments, formatArguments } from '../index.js';
 
 // ──────────────────────────────────────────────
 // Test helpers

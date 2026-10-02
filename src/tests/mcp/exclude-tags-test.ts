@@ -5,7 +5,7 @@
  * Run with: npx ts-node tests/mcp/exclude-tags-test.ts
  */
 
-import { buildCommandMap } from '../../src/index';
+import { buildCommandMap } from '../../index.js';
 
 // ──────────────────────────────────────────────
 // Test helpers

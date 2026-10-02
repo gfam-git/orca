@@ -12,7 +12,7 @@
  */
 
 // We need to import parseArguments from the src directory
-import { parseArguments } from '../../src/index';
+import { parseArguments } from '../../index.js';
 
 // ──────────────────────────────────────────────
 // Test helpers

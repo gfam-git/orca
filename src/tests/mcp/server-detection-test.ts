@@ -5,8 +5,8 @@
  * Run with: npx ts-node tests/mcp/server-detection-test.ts
  */
 
-import { extractServerUrl } from '../src/orc/client';
-import { OpenApiSpec } from '../src/orc/types';
+import { extractServerUrl } from '../src/orc/client.js';
+import { OpenApiSpec } from '../src/orc/types.js';
 
 // ──────────────────────────────────────────────
 // Test helpers

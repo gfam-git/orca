@@ -9,8 +9,8 @@ import {
   parseAuthConfig,
   injectAuthHeaders,
   injectApiKeyQuery,
-} from '../../src/orc/auth';
-import { AuthConfig, SecurityScheme } from '../../src/orc/types';
+} from '../../orc/auth.js';
+import { AuthConfig, SecurityScheme } from '../../orc/types.js';
 
 // ──────────────────────────────────────────────
 // Test helpers

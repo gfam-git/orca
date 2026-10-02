@@ -349,5 +349,39 @@ When a request is executed, auth headers are injected into the request headers o
 | `ORCA_AUTH_APIKEY_NAME` | Conditional | None | API key parameter name |
 | `ORCA_AUTH_APIKEY_VALUE` | Conditional | None | API key value |
 | `ORCA_AUTH_APIKEY_IN` | No | `header` | API key injection location |
+| `ORCA_EXCLUDE_TAGS` | No | None | Comma-delimited tag names to exclude from the command map |
+| `ORCA_API_ROOT` | No | None | Leading path segment to strip from spec paths (e.g. `/v1`) |
 
 *Required when overriding spec inference.
+
+---
+
+## Path Configuration
+
+### ORCA_API_ROOT
+
+| Property | Value |
+| --- | --- |
+| **Required** | No |
+| **Default** | None (no prefix stripped) |
+| **Description** | A leading path segment to strip from OpenAPI spec paths before parsing. When an API spec is mounted under a prefix (e.g. `/v1` or `/api`), this variable tells ORCa to remove that prefix so that path segments are correctly interpreted as resources and functions. |
+| **Validation** | Must be a single path segment starting with `/` (e.g. `'/v1'`, `'/api'`, `'/'`). Invalid values (multiple segments, invalid characters) are silently ignored. Trailing slashes are stripped automatically. |
+| **Example** | `export ORCA_API_ROOT=/v1` |
+
+```bash
+export ORCA_SPEC_ENDPOINT=https://laya.studio/v1/openapi
+export ORCA_API_ROOT=/v1
+```
+
+**Behavior when set:**
+- The root prefix is stripped from spec paths before building the command map
+- The same prefix is stripped from resolved paths when making HTTP requests
+- Path segments after the root become resource and function names
+
+**Behavior when unset:**
+- Paths are used as-is (no stripping)
+- Existing behavior is unchanged
+
+**Error if invalid:**
+- Invalid values (multiple segments like `/v1/api`) are silently ignored; ORCa behaves as if the variable is unset.
+```

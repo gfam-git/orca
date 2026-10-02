@@ -287,6 +287,55 @@ function isExcludedOperation(operation: OpenApiOperation): boolean {
   return tags.some((tag) => excluded.has(tag));
 }
 
+// ---------------------------------------------------------------------------
+// ORCA_API_ROOT — strip leading path prefix from spec paths
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse ORCA_API_ROOT env var into a root prefix string.
+ * Returns '' (empty) if unset or empty.
+ * Normalizes: strips trailing slash, ensures leading slash.
+ * Only accepts a single path segment (e.g. '/', '/api', '/v1').
+ * Invalid values (multiple segments, invalid characters) are ignored.
+ */
+export function parseApiRoot(): string {
+  const envVal = process.env.ORCA_API_ROOT;
+  if (!envVal || envVal.trim() === '') {
+    return '';
+  }
+  let root = envVal.trim();
+  // Ensure leading slash
+  if (!root.startsWith('/')) {
+    root = '/' + root;
+  }
+  // Strip trailing slash(es)
+  root = root.replace(/\/+$/, '');
+  // If the root is now empty (was just '/'), treat it as root
+  if (root === '') {
+    root = '/';
+  }
+  // Validate: must be a single path segment (no embedded slashes after the first)
+  const rest = root.slice(1);
+  if (rest.includes('/')) {
+    // Multiple segments — invalid, ignore
+    return '';
+  }
+  return root;
+}
+
+/**
+ * Strip the ORCA_API_ROOT prefix from a path template.
+ * E.g. '/v1/users' with root '/v1' → '/users'
+ * If root is '/' it is stripped entirely (it's the spec mount point).
+ * If root is '' nothing is stripped.
+ */
+function stripApiRoot(pathTemplate: string, apiRoot: string): string {
+  if (!apiRoot) return pathTemplate;
+  // When root is '/', strip the leading slash
+  if (apiRoot === '/') return pathTemplate.startsWith('/') ? pathTemplate.slice(1) : pathTemplate;
+  return pathTemplate.startsWith(apiRoot) ? pathTemplate.slice(apiRoot.length) : pathTemplate;
+}
+
 /**
  * Build the command map from an OpenAPI spec.
  *
@@ -298,12 +347,16 @@ function isExcludedOperation(operation: OpenApiOperation): boolean {
  * - Parameters become flags with --name value format.
  * - Boolean parameters: omit value if true, omit flag if false.
  * - Operations with tags matching ORCA_EXCLUDE_TAGS are skipped.
+ * - When ORCA_API_ROOT is set, the root prefix is stripped from paths before parsing.
  */
 export function buildCommandMap(spec: OpenApiSpec): CommandMap {
   const commandMap: CommandMap = {};
   const paths = spec.paths || {};
+  const apiRoot = parseApiRoot();
 
   for (const [pathTemplate, methods] of Object.entries(paths)) {
+    const strippedPath = stripApiRoot(pathTemplate, apiRoot);
+
     for (const [method, operation] of Object.entries(methods)) {
       if (!isHttpMethod(method)) continue;
 
@@ -313,14 +366,14 @@ export function buildCommandMap(spec: OpenApiSpec): CommandMap {
       // const tags = operation.tags || [];
       // const operationId = operation.operationId || "";
 
-      // Determine resource and function name
-      const { resource, func } = resolveResourceAndFunction(pathTemplate, method/*, tags, operationId*/);
+      // Determine resource and function name from the stripped path
+      const { resource, func } = resolveResourceAndFunction(strippedPath, method/*, tags, operationId*/);
 
       // Build function definition
       const funcDef: FuncDef = {
         name: func,
         description: operation.summary || operation.description,
-        params: buildParamDefs(operation, pathTemplate),
+        params: buildParamDefs(operation, strippedPath),
       };
 
       // Add to resource
@@ -664,6 +717,10 @@ export function resolveOperation(
 
   // Build the resolved path with placeholders replaced by flag values
   let resolvedPath = pathTemplate;
+  const apiRoot = parseApiRoot();
+
+  // Strip API root prefix from the resolved path for the actual HTTP request
+  resolvedPath = stripApiRoot(resolvedPath, apiRoot);
   const query: Record<string, string | number | boolean> = {};
   const body: Record<string, unknown> = {};
 
@@ -732,12 +789,18 @@ export function resolveOperation(
 /**
  * Find the matching path template in the spec for a given resource and function.
  * Returns [pathTemplate, method] tuple.
+ * When ORCA_API_ROOT is set, paths are matched against the stripped version
+ * so that resource names derived from stripped paths in buildCommandMap
+ * align correctly with spec paths.
  */
 function findPathTemplate(spec: OpenApiSpec, resource: string, func: string): [string, string] {
   const paths = spec.paths || {};
+  const apiRoot = parseApiRoot();
 
   // Try to find the path by matching tags or path structure
   for (const [pathTemplate, methods] of Object.entries(paths)) {
+    const strippedPath = stripApiRoot(pathTemplate, apiRoot);
+
     for (const [method, operation] of Object.entries(methods)) {
       const tags = operation.tags || [];
       const operationId = operation.operationId || "";
@@ -751,8 +814,8 @@ function findPathTemplate(spec: OpenApiSpec, resource: string, func: string): [s
         }
       }
 
-      // Match by path structure
-      const segments = pathTemplate
+      // Match by path structure (using stripped path for segment comparison)
+      const segments = strippedPath
         .replace(/^\//, "")
         .split("/")
         .filter((s) => s.length > 0)

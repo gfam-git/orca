@@ -69,6 +69,140 @@ interface OpenApiSchema {
   format?: string;
   enum?: unknown[];
   description?: string;
+  $ref?: string;
+  additionalProperties?: OpenApiSchema;
+  oneOf?: OpenApiSchema[];
+  anyOf?: OpenApiSchema[];
+}
+
+/** Resolve a $ref pointer against the spec's components/schemas */
+function resolveRef(schema: OpenApiSchema, spec: OpenApiSpec): OpenApiSchema {
+  if (!schema.$ref) return schema;
+  const ref = schema.$ref;
+  // Only resolve local refs of the form #/components/schemas/Name
+  const match = ref.match(/^#\/components\/schemas\/(\w+)$/);
+  if (match) {
+    const schemas = spec.components?.schemas;
+    if (schemas && schemas[match[1]]) {
+      return resolveRef(schemas[match[1]] as OpenApiSchema, spec);
+    }
+  }
+  return schema;
+}
+
+/** Recursively resolve $ref chains on a schema (handles nested refs) */
+function resolveSchema(schema: OpenApiSchema, spec: OpenApiSpec): OpenApiSchema {
+  let resolved = resolveRef(schema, spec);
+  // If properties contain refs, resolve them too
+  if (resolved.properties) {
+    resolved.properties = Object.fromEntries(
+      Object.entries(resolved.properties).map(([k, v]) => [k, resolveSchema(v as OpenApiSchema, spec)])
+    );
+  }
+  // Resolve items schema (for arrays)
+  if (resolved.items) {
+    resolved.items = resolveSchema(resolved.items as OpenApiSchema, spec);
+  }
+  // Resolve additionalProperties
+  if (resolved.additionalProperties) {
+    resolved.additionalProperties = resolveSchema(resolved.additionalProperties as OpenApiSchema, spec);
+  }
+  // Resolve oneOf/anyOf (take first for now)
+  if (resolved.oneOf && resolved.oneOf[0]) {
+    resolved.oneOf = [resolveSchema(resolved.oneOf[0] as OpenApiSchema, spec), ...(resolved.oneOf.slice(1) as OpenApiSchema[])];
+  }
+  return resolved;
+}
+
+/** Get all property names from a schema, including nested refs */
+function getSchemaProperties(schema: OpenApiSchema, spec: OpenApiSpec): OpenApiSchema {
+  const resolved = resolveSchema(schema, spec);
+  return resolved;
+}
+
+/** Extract nested property definitions from a schema for help text */
+function extractNestedParams(param: ParamDef, spec: OpenApiSpec, depth: number = 1): string {
+  const schema = param.schema as OpenApiSchema | undefined;
+  if (!schema) return '';
+  const resolved = resolveSchema(schema, spec);
+  const lines: string[] = [];
+  const indent = '  '.repeat(depth);
+  const required = resolved.required || [];
+
+  if (resolved.type === 'array' && resolved.items) {
+    // Array body param: extract properties from items schema
+    const itemResolved = resolveSchema(resolved.items as OpenApiSchema, spec);
+    const itemProps = itemResolved.properties || {};
+    const itemRequired = itemResolved.required || [];
+    const props = Object.entries(itemProps);
+    for (const [propName, propSchema] of props) {
+      const pResolved = resolveSchema(propSchema as OpenApiSchema, spec);
+      const req = itemRequired.includes(propName) ? ' (required)' : '';
+      const pType = pResolved.type || 'object';
+      const desc = pResolved.description ? ` — ${pResolved.description}` : '';
+
+      lines.push(`${indent}  --${propName} ${pType}${req}${desc}`);
+      if (pType === 'object' || pType === 'array') {
+        const nested = extractNestedParams({ ...param, schema: pResolved as unknown as Record<string, unknown> }, spec, depth + 1);
+        if (nested) {
+          lines.push(nested);
+        }
+      } else if (pType === 'string' || pType === 'integer' || pType === 'number' || pType === 'boolean') {
+        const bool = pType === 'boolean' ? ' [boolean]' : '';
+        lines.push(`${indent}    --${propName} ${pType}${bool}${req}${desc}`);
+      } else {
+        lines.push(`${indent}    --${propName} ${pType}${req}${desc}`);
+      }
+    }
+  } else if (resolved.properties) {
+    const props = Object.entries(resolved.properties);
+    for (const [propName, propSchema] of props) {
+      const pResolved = resolveSchema(propSchema as OpenApiSchema, spec);
+      const req = required.includes(propName) ? ' (required)' : '';
+      const pType = pResolved.type || 'object';
+      const desc = pResolved.description ? ` — ${pResolved.description}` : '';
+
+      if (pType === 'object' || pType === 'array') {
+        lines.push(`${indent}  --${propName} ${pType}${req}${desc}`);
+        // Recurse for nested objects
+        const nested = extractNestedParams({ ...param, schema: pResolved as unknown as Record<string, unknown> }, spec, depth + 1);
+        if (nested) {
+          lines.push(nested);
+        }
+      } else if (pType === 'string' || pType === 'integer' || pType === 'number' || pType === 'boolean') {
+        const bool = pType === 'boolean' ? ' [boolean]' : '';
+        lines.push(`${indent}    --${propName} ${pType}${bool}${req}${desc}`);
+      } else {
+        lines.push(`${indent}    --${propName} ${pType}${req}${desc}`);
+      }
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/** Build a concise schema description for help text */
+function buildSchemaDescription(schema: OpenApiSchema, spec: OpenApiSpec): string {
+  const resolved = resolveSchema(schema, spec);
+  const parts: string[] = [];
+
+  if (resolved.type === 'array') {
+    const itemSchema = resolved.items;
+    const itemResolved = itemSchema ? resolveSchema(itemSchema, spec) : null;
+    const itemType = itemResolved?.type || 'object';
+    parts.push(`array of ${itemType}`);
+    if (itemResolved && itemResolved.properties) {
+      const propNames = Object.keys(itemResolved.properties);
+      parts.push(`(${propNames.join(', ')})`);
+    }
+  } else if (resolved.type === 'object' && resolved.properties) {
+    const propNames = Object.keys(resolved.properties);
+    parts.push(`object (${propNames.join(', ')})`);
+  } else {
+    parts.push(resolved.type || 'any');
+  }
+
+  return parts.join('');
 }
 
 // ---------------------------------------------------------------------------
@@ -367,13 +501,13 @@ export function buildCommandMap(spec: OpenApiSpec): CommandMap {
       // const operationId = operation.operationId || "";
 
       // Determine resource and function name from the stripped path
-      const { resource, func } = resolveResourceAndFunction(strippedPath, method/*, tags, operationId*/);
+      const { resource, func } = resolveResourceAndFunction(strippedPath, method, operation);
 
       // Build function definition
       const funcDef: FuncDef = {
         name: func,
         description: operation.summary || operation.description,
-        params: buildParamDefs(operation, strippedPath),
+        params: buildParamDefs(operation, strippedPath, spec),
       };
 
       // Add to resource
@@ -404,16 +538,16 @@ function isHttpMethod(method: string): boolean {
 function resolveResourceAndFunction(
   pathTemplate: string,
   method: string,
-  // tags: string[],
-  // operationId: string
+  operation: OpenApiOperation
 ): { resource: string; func: string } {
   // Try tags first (most common convention)
-  // if (tags.length > 0) {
-  //   const resource = tags[0].toLowerCase();
-  //   // Try to derive function from operationId
-  //   // const func = deriveFunctionName(operationId, method, resource);
-  //   // return { resource, func };
-  // }
+  const tags = operation.tags || [];
+  if (tags.length > 0) {
+    const resource = tags[0].toLowerCase();
+    const operationId = operation.operationId || "";
+    const func = deriveFunctionName(operationId, method, resource);
+    return { resource, func };
+  }
 
   // Fall back to path-based resolution
   // Normalize path: remove leading slash, split by /
@@ -493,7 +627,7 @@ function getResourceDescription(spec: OpenApiSpec, resource: string): string | u
 }
 
 /** Build parameter definitions from an OpenAPI operation */
-function buildParamDefs(operation: OpenApiOperation, pathTemplate: string): ParamDef[] {
+function buildParamDefs(operation: OpenApiOperation, pathTemplate: string, spec: OpenApiSpec): ParamDef[] {
   const params: ParamDef[] = [];
 
   // Collect path parameters from the path template
@@ -512,7 +646,8 @@ function buildParamDefs(operation: OpenApiOperation, pathTemplate: string): Para
     if (!param.name) continue;
 
     const schema = param.schema || {};
-    const paramType = schema.type || "string";
+    const resolved = resolveSchema(schema as OpenApiSchema, spec);
+    const paramType = resolved.type || "string";
     const location = (param.in || "query") as "query" | "path" | "body";
     const isBoolean = paramType === "boolean";
 
@@ -520,7 +655,7 @@ function buildParamDefs(operation: OpenApiOperation, pathTemplate: string): Para
     params.push({
       name: param.name,
       type: paramType,
-      description: param.description,
+      description: resolved.description || param.description,
       required: param.required === true,
       boolean: isBoolean,
       location,
@@ -548,23 +683,54 @@ function buildParamDefs(operation: OpenApiOperation, pathTemplate: string): Para
     if (content) {
       for (const [contentType, bodyDef] of Object.entries(content)) {
         if (contentType === "application/json" || contentType === "application/x-www-form-urlencoded") {
-          const schema = bodyDef.schema;
-          if (schema?.properties) {
-            const required = schema.required || [];
-            for (const [propName, propSchema] of Object.entries(schema.properties)) {
+          let schema = bodyDef.schema;
+          if (!schema) continue;
+          // Resolve any $ref on the top-level schema using the real spec
+          const resolved = resolveSchema(schema as OpenApiSchema, spec);
+          if (resolved.properties) {
+            const required = resolved.required || [];
+            for (const [propName, propSchema] of Object.entries(resolved.properties)) {
               const existing = params.find((p) => p.name === propName);
               if (!existing) {
-                const pType = propSchema.type || "string";
+                const pSchema = propSchema as OpenApiSchema;
+                const pResolved = resolveSchema(pSchema, spec);
+                const pType = pResolved.type || "string";
                 const isJson = pType === "object" || pType === "array";
                 params.push({
                   name: propName,
                   type: pType,
-                  description: propSchema.description,
+                  description: pResolved.description || pSchema.description,
                   required: required.includes(propName),
                   boolean: pType === "boolean",
                   location: "body",
                   json: isJson,
+                  schema: pType === "object" || pType === "array" ? (pResolved as unknown as Record<string, unknown>) : undefined,
                 });
+              }
+            }
+          } else if (resolved.type === "array" && resolved.items) {
+            // Array body param: extract properties from items schema
+            const itemResolved = resolveSchema(resolved.items as OpenApiSchema, spec);
+            if (itemResolved.properties) {
+              const required = itemResolved.required || [];
+              for (const [propName, propSchema] of Object.entries(itemResolved.properties)) {
+                const existing = params.find((p) => p.name === propName);
+                if (!existing) {
+                  const pSchema = propSchema as OpenApiSchema;
+                  const pResolved = resolveSchema(pSchema, spec);
+                  const pType = pResolved.type || "string";
+                  const isJson = pType === "object" || pType === "array";
+                  params.push({
+                    name: propName,
+                    type: pType,
+                    description: pResolved.description || pSchema.description,
+                    required: required.includes(propName),
+                    boolean: pType === "boolean",
+                    location: "body",
+                    json: isJson,
+                    schema: pType === "object" || pType === "array" ? (pResolved as unknown as Record<string, unknown>) : undefined,
+                  });
+                }
               }
             }
           }
@@ -907,7 +1073,7 @@ export function helpResource(commandMap: CommandMap, resource: string): string {
 }
 
 /** Generate help text for a specific function */
-export function helpFunction(commandMap: CommandMap, resource: string, func: string): string {
+export function helpFunction(commandMap: CommandMap, resource: string, func: string, spec: OpenApiSpec): string {
   const resourceDef = commandMap[resource];
   if (!resourceDef) {
     throw new OrcSpecError(`Unknown resource: ${resource}`);
@@ -934,6 +1100,14 @@ export function helpFunction(commandMap: CommandMap, resource: string, func: str
     const type = param.type || "string";
     const desc = param.description ? ` — ${param.description}` : "";
     lines.push(`  --${param.name} ${type}${bool}${required}${desc}`);
+
+    // Recursively expand nested object/array body params
+    if (param.location === "body" && (param.type === "object" || param.type === "array") && !param.boolean) {
+      const nested = extractNestedParams(param, spec, 1);
+      if (nested) {
+        lines.push(nested);
+      }
+    }
   }
 
   lines.push("");
@@ -1064,7 +1238,7 @@ export class OrcClient implements ORCClient {
     if (!this.isConnected) {
       throw new OrcSpecError("Not connected. Call connect() first.");
     }
-    return helpFunction(this.commandMap, resource, func);
+    return helpFunction(this.commandMap, resource, func, this.spec as OpenApiSpec);
   }
 
   /**

@@ -49,6 +49,7 @@ interface OpenApiSchema {
   format?: string;
   enum?: unknown[];
   description?: string;
+  $ref?: string;
 }
 
 /** A parameter definition extracted from an OpenAPI operation. */
@@ -67,6 +68,8 @@ export interface ParamDef {
   location: "query" | "path" | "body";
   /** Whether this parameter should be parsed as JSON (object/array types) */
   json?: boolean;
+  /** Resolved schema for nested property expansion (null if not applicable) */
+  schema?: Record<string, unknown>;
 }
 
 /** A function (operation) on a resource. */

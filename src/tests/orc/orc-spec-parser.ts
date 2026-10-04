@@ -588,7 +588,7 @@ async function testHelpText(): Promise<void> {
     'helpFunction() shows function and parameters',
     () => {
       const map = buildCommandMap(sampleSpec);
-      const output = helpFunction(map, 'users', 'get');
+      const output = helpFunction(map, 'users', 'get', sampleSpec);
       assertEqual(output.includes('Function: users get'), true, 'shows function name');
       assertEqual(output.includes('--id'), true, 'lists id param');
       assertEqual(output.includes('string'), true, 'shows param type');
@@ -601,7 +601,7 @@ async function testHelpText(): Promise<void> {
     'helpFunction() includes example with placeholders',
     () => {
       const map = buildCommandMap(sampleSpec);
-      const output = helpFunction(map, 'users', 'get');
+      const output = helpFunction(map, 'users', 'get', sampleSpec);
       assertEqual(output.includes('<id>'), true, 'example has id placeholder');
     }
   );
@@ -611,7 +611,7 @@ async function testHelpText(): Promise<void> {
     'helpFunction() shows optional params with brackets',
     () => {
       const map = buildCommandMap(sampleSpec);
-      const output = helpFunction(map, 'users', 'list');
+      const output = helpFunction(map, 'users', 'list', sampleSpec);
       assertEqual(output.includes('[--limit'), true, 'optional limit shown with brackets');
     }
   );
@@ -621,7 +621,7 @@ async function testHelpText(): Promise<void> {
     'helpFunction() shows boolean params',
     () => {
       const map = buildCommandMap(sampleSpec);
-      const output = helpFunction(map, 'users', 'update');
+      const output = helpFunction(map, 'users', 'update', sampleSpec);
       assertEqual(output.includes('[boolean]'), true, 'boolean param type shown');
     }
   );
@@ -646,11 +646,169 @@ async function testHelpText(): Promise<void> {
     () => {
       const map = buildCommandMap(sampleSpec);
       try {
-        helpFunction(map, 'users', 'unknown');
+        helpFunction(map, 'users', 'unknown', sampleSpec);
         throw new Error('Should have thrown');
       } catch (err) {
         assertDeepEqual(err instanceof OrcSpecError ? err.message : '', 'Unknown function unknown on resource users', 'unknown function');
       }
+    }
+  );
+
+  // Test 10: $ref in body params resolved for help text
+  await test(
+    'helpFunction() resolves $ref schemas in body params',
+    () => {
+      const refSpec: OpenApiSpec = {
+        openapi: '3.0.0',
+        info: { title: 'Ref API' },
+        paths: {
+          '/users/{id}': {
+            get: {
+              tags: ['users'],
+              operationId: 'getUser',
+              summary: 'Get a user',
+              parameters: [
+                { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+              ],
+              responses: { '200': { description: 'OK' } },
+            },
+            put: {
+              tags: ['users'],
+              operationId: 'updateUser',
+              summary: 'Update a user with ref',
+              parameters: [
+                { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+              ],
+              requestBody: {
+                content: {
+                  'application/json': {
+                    schema: {
+                      $ref: '#/components/schemas/UserUpdate',
+                    },
+                  },
+                },
+              },
+              responses: { '200': { description: 'OK' } },
+            },
+          },
+        },
+        components: {
+          schemas: {
+            UserUpdate: {
+              type: 'object',
+              properties: {
+                name: { type: 'string', description: 'User name' },
+                email: { type: 'string', description: 'User email' },
+              },
+            },
+          },
+        },
+      };
+      const map = buildCommandMap(refSpec);
+      const output = helpFunction(map, 'users', 'update', refSpec);
+      assertEqual(output.includes('name'), true, 'shows name param from $ref');
+      assertEqual(output.includes('email'), true, 'shows email param from $ref');
+      assertEqual(output.includes('User name'), true, 'shows description from $ref');
+    }
+  );
+
+  // Test 11: Nested object body params show properties
+  await test(
+    'helpFunction() shows nested object properties',
+    () => {
+      const nestedSpec: OpenApiSpec = {
+        openapi: '3.0.0',
+        info: { title: 'Nested API' },
+        paths: {
+          '/users/{id}': {
+            get: {
+              tags: ['users'],
+              operationId: 'getUser',
+              summary: 'Get a user',
+              parameters: [
+                { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+              ],
+              responses: { '200': { description: 'OK' } },
+            },
+            put: {
+              tags: ['users'],
+              operationId: 'updateUser',
+              summary: 'Update a user with nested body',
+              parameters: [
+                { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+              ],
+              requestBody: {
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string', description: 'User name' },
+                        address: {
+                          type: 'object',
+                          properties: {
+                            street: { type: 'string', description: 'Street address' },
+                            city: { type: 'string', description: 'City name' },
+                            zip: { type: 'string', description: 'ZIP code' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: { '200': { description: 'OK' } },
+            },
+          },
+        },
+      };
+      const map = buildCommandMap(nestedSpec);
+      const output = helpFunction(map, 'users', 'update', nestedSpec);
+      assertEqual(output.includes('address'), true, 'shows address param');
+      assertEqual(output.includes('street'), true, 'shows nested street param');
+      assertEqual(output.includes('city'), true, 'shows nested city param');
+      assertEqual(output.includes('ZIP code'), true, 'shows nested description');
+    }
+  );
+
+  // Test 12: Array body params show inner properties
+  await test(
+    'helpFunction() shows array inner properties',
+    () => {
+      const arraySpec: OpenApiSpec = {
+        openapi: '3.0.0',
+        info: { title: 'Array API' },
+        paths: {
+          '/users': {
+            post: {
+              tags: ['users'],
+              operationId: 'createUsers',
+              summary: 'Create users from array',
+              requestBody: {
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          name: { type: 'string', description: 'User name' },
+                          email: { type: 'string', description: 'User email' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: { '201': { description: 'Created' } },
+            },
+          },
+        },
+      };
+      const map = buildCommandMap(arraySpec);
+      const output = helpFunction(map, 'users', 'create', arraySpec);
+      assertEqual(output.includes('name'), true, 'shows name param from array items');
+      assertEqual(output.includes('email'), true, 'shows email param from array items');
     }
   );
 }

@@ -50,7 +50,7 @@ function assertThrows(fn: () => void, expectedMsg?: string): void {
 // Minimal OpenAPI spec builder
 // ──────────────────────────────────────────────
 
-function makeSpec(paths: Record<string, Record<string, { operationId?: string; summary?: string; description?: string; parameters?: any[]; requestBody?: any }>>): any {
+function makeSpec(paths: Record<string, Record<string, { operationId?: string; summary?: string; description?: string; parameters?: any[]; requestBody?: any; tags?: string[] }>>): any {
   return {
     openapi: '3.0.0',
     info: { title: 'Test API', description: 'Test spec' },
@@ -495,12 +495,124 @@ async function test20(): Promise<void> {
 }
 
 // ──────────────────────────────────────────────
+// Test 21: Tags + path params → path-based resolution wins
+// ──────────────────────────────────────────────
+
+async function test21(): Promise<void> {
+  console.log('\nTest 21: Tags + path params → path-based resolution wins\n');
+  const spec = makeSpec({
+    '/tabs/{tabId}/snapshot': {
+      get: {
+        operationId: 'snapshotTab',
+        summary: 'Get tab snapshot',
+        tags: ['Content'],
+      },
+    },
+  });
+  const cmdMap = buildCommandMap(spec);
+  // Tags=['Content'] should NOT override path-based resolution.
+  // Path /tabs/{tabId}/snapshot → segments: ["tabs", "snapshot"]
+  // → resource = "tabs", func = "snapshot"
+  assertEqual(cmdMap.tabs.name, 'tabs', 'resource name');
+  assertEqual(cmdMap.tabs.functions.snapshot.name, 'snapshot', 'function name');
+}
+
+// ──────────────────────────────────────────────
+// Test 22: Tags + path params with different tag mismatch
+// ──────────────────────────────────────────────
+
+async function test22(): Promise<void> {
+  console.log('\nTest 22: Tags + path params with different tag mismatch\n');
+  const spec = makeSpec({
+    '/sessions/{sessionId}/messages': {
+      get: {
+        operationId: 'listMessages',
+        summary: 'List session messages',
+        tags: ['Interaction'],
+      },
+    },
+  });
+  const cmdMap = buildCommandMap(spec);
+  // Tags=['Interaction'] should NOT override path-based resolution.
+  // Path /sessions/{sessionId}/messages → segments: ["sessions", "messages"]
+  // → resource = "sessions", func = "messages"
+  assertEqual(cmdMap.sessions.name, 'sessions', 'resource name');
+  assertEqual(cmdMap.sessions.functions.messages.name, 'messages', 'function name');
+}
+
+// ──────────────────────────────────────────────
+// Test 23: Tags match path (should still use path-based)
+// ──────────────────────────────────────────────
+
+async function test23(): Promise<void> {
+  console.log('\nTest 23: Tags match path (should still use path-based)\n');
+  const spec = makeSpec({
+    '/tabs/{tabId}/stats': {
+      get: {
+        operationId: 'getTabStats',
+        summary: 'Get tab stats',
+        tags: ['Tabs'],
+      },
+    },
+  });
+  const cmdMap = buildCommandMap(spec);
+  // Tags=['Tabs'] coincidentally matches path segment "tabs", but path-based
+  // resolution should still win: resource = "tabs", func = "stats"
+  assertEqual(cmdMap.tabs.name, 'tabs', 'resource name');
+  assertEqual(cmdMap.tabs.functions.stats.name, 'stats', 'function name');
+}
+
+// ──────────────────────────────────────────────
+// Test 24: Tags as fallback when path is empty (no segments)
+// ──────────────────────────────────────────────
+
+async function test24(): Promise<void> {
+  console.log('\nTest 24: Tags as fallback when path provides no segments\n');
+  const spec = makeSpec({
+    '/{resource}/{action}': {
+      get: {
+        operationId: 'doAction',
+        summary: 'Generic action',
+        tags: ['Content'],
+      },
+    },
+  });
+  const cmdMap = buildCommandMap(spec);
+  // After stripping: [] → segments.length === 0 → fall through to tags
+  // Tags=['Content'] → resource = "content", func = "get" (derived from method)
+  assertEqual(cmdMap.content.name, 'content', 'resource name');
+  assertEqual(cmdMap.content.functions.get.name, 'get', 'function name');
+}
+
+// ──────────────────────────────────────────────
+// Test 25: Tags fallback with operationId
+// ──────────────────────────────────────────────
+
+async function test25(): Promise<void> {
+  console.log('\nTest 25: Tags fallback with operationId\n');
+  const spec = makeSpec({
+    '/{x}/{y}': {
+      post: {
+        operationId: 'createItem',
+        summary: 'Create item',
+        tags: ['Content'],
+      },
+    },
+  });
+  const cmdMap = buildCommandMap(spec);
+  // After stripping: [] → fall through to tags
+  // Tags=['Content'], operationId='createItem' starts with 'create' → func = "create"
+  assertEqual(cmdMap.content.name, 'content', 'resource name');
+  assertEqual(cmdMap.content.functions.create.name, 'create', 'function name');
+}
+
+// ──────────────────────────────────────────────
 // Run all tests
 // ──────────────────────────────────────────────
 
 async function runTests(): Promise<void> {
   console.log('=== ORCa Path Parameter Resolution Tests ===');
-  console.log('Testing fix: greedy /{.*}\// -> non-greedy /\\{[^/]*\}/g\n');
+  console.log('Testing fix: greedy /{.*}\\// -> non-greedy /\\{[^/]*\\}/g\n');
 
   const tests: { name: string; fn: () => Promise<void> }[] = [
     { name: 'Test 1', fn: test1 },
@@ -523,6 +635,11 @@ async function runTests(): Promise<void> {
     { name: 'Test 18', fn: test18 },
     { name: 'Test 19', fn: test19 },
     { name: 'Test 20', fn: test20 },
+    { name: 'Test 21', fn: test21 },
+    { name: 'Test 22', fn: test22 },
+    { name: 'Test 23', fn: test23 },
+    { name: 'Test 24', fn: test24 },
+    { name: 'Test 25', fn: test25 },
   ];
 
   for (const t of tests) {

@@ -104,6 +104,20 @@ Resources and functions are derived from the OpenAPI spec using these rules:
 3. **Path placeholders**: Segments wrapped in `{...}` are treated as path parameters, not resources or functions.
    - Example: `/users/{id}/tabs/{tabId}` → resource: `users`, function: `tabs`
 
+4. **Tags as fallback**: Tags are only used as a fallback when the path has no segments (i.e., after stripping path parameters the path is empty or has only one segment). Tags are no longer the primary resolution mechanism — path-based resolution always takes priority.
+   - Example: `/{resource}/{action}` with tags `['Content']` → after stripping `{}` → no segments → resource: `content`, function: derived from HTTP method
+   - Example: `/tabs/{tabId}/snapshot` → resource: `tabs`, function: `snapshot` (tags ignored, path takes priority)
+
+### Resolution priority
+
+Path-based resolution is checked first. Tags are consulted only when the path provides no usable segments:
+
+```
+1. Resolve resource/function from path segments (after stripping {param} placeholders)
+2. If path has no segments, fall back to first tag as resource name
+3. If neither path nor tags provide a resource, use "default"
+```
+
 ### Command Map Building Process
 
 1. Iterate over all paths in the OpenAPI spec.

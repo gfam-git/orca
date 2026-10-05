@@ -540,17 +540,8 @@ function resolveResourceAndFunction(
   method: string,
   operation: OpenApiOperation
 ): { resource: string; func: string } {
-  // Try tags first (most common convention)
-  const tags = operation.tags || [];
-  if (tags.length > 0) {
-    const resource = tags[0].toLowerCase();
-    const operationId = operation.operationId || "";
-    const func = deriveFunctionName(operationId, method, resource);
-    return { resource, func };
-  }
-
-  // Fall back to path-based resolution
-  // Normalize path: remove leading slash, split by /
+  // Path-based resolution first (most accurate for OpenAPI paths with parameters)
+  // Normalize path: remove path params like {tabId}, split by /
   const segments = pathTemplate
     .replace(/\{[^/]*\}/g, "")
     .split("/")
@@ -574,6 +565,15 @@ function resolveResourceAndFunction(
   // Single segment path: resource is the segment, function is the method
   if (segments.length === 1) {
     return { resource: segments[0].toLowerCase(), func: method.toLowerCase() };
+  }
+
+  // Fall back to tags for path-less or single-segment paths
+  const tags = operation.tags || [];
+  if (tags.length > 0) {
+    const resource = tags[0].toLowerCase();
+    const operationId = operation.operationId || "";
+    const func = deriveFunctionName(operationId, method, resource);
+    return { resource, func };
   }
 
   // Default
